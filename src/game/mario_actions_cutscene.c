@@ -540,6 +540,7 @@ s32 act_reading_automatic_dialog(struct MarioState *m) {
         if (m->actionState == 9) {
             // only show dialog for local player
             if (m == &gMarioStates[0]) {
+                // LOCALSHIZ
                 u32 actionArg = m->actionArg;
                 if (GET_HIGH_U16_OF_32(actionArg) == 0) {
                     create_dialog_box(GET_LOW_U16_OF_32(actionArg));

@@ -49,9 +49,9 @@ TEXTSAVES ?= 0
 # Load resources from external files
 EXTERNAL_DATA ?= 0
 # Enable Discord Game SDK (used for Discord invites)
-DISCORD_SDK ?= 1
+DISCORD_SDK ?= 0
 # Enable CoopNet SDK (used for CoopNet server hosting)
-COOPNET ?= 1
+COOPNET ?= 0
 # Enable docker build workarounds
 DOCKERBUILD ?= 0
 # Sets your optimization level for building.
@@ -97,9 +97,9 @@ WINDOWS_BUILD ?= 0
 WINDOWS_AUTO_BUILDER ?= 0
 
 # Setup extra cflags
-EXTRA_CFLAGS ?=
+EXTRA_CFLAGS ?= 
 EXTRA_CPP_FLAGS ?=
-EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs
+EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs -fPIC -shared
 
 dev:; @$(MAKE) DEVELOPMENT=1
 
@@ -411,9 +411,9 @@ ifeq ($(OSX_BUILD),0)
 endif
 
 ifeq ($(USE_APP),0)
-TARGET_STRING := sm64.$(VERSION).$(GRUCODE)
+TARGET_STRING := sm64
 else
-TARGET_STRING := sm64.$(VERSION).$(GRUCODE).app
+TARGET_STRING := sm64
 endif
 # If non-default settings were chosen, disable COMPARE
 ifeq ($(filter $(TARGET_STRING), sm64.jp.f3d_old sm64.us.f3d_old sm64.eu.f3d_new sm64.sh.f3d_new),)
@@ -514,7 +514,7 @@ BUILD_DIR_BASE := build
 BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_pc
 
 ifeq ($(WINDOWS_BUILD),1)
-	EXE := $(BUILD_DIR)/$(TARGET_STRING).exe
+	EXE := $(BUILD_DIR)/$(TARGET_STRING).dll
 else # Linux builds/binary namer
 	ifeq ($(TARGET_RPI),1)
 		EXE := $(BUILD_DIR)/$(TARGET_STRING).arm
@@ -700,7 +700,7 @@ else ifeq ($(COMPILER),gcc)
   CC      := $(CROSS)gcc
   CXX     := $(CROSS)g++
   ifeq ($(OSX_BUILD),0)
-	EXTRA_CFLAGS += -Wno-unused-result -Wno-format-truncation
+	EXTRA_CFLAGS += -Wno-unused-result -Wno-format-truncation 
   else
 	EXTRA_CFLAGS += -Wno-unused-result
   endif
@@ -904,7 +904,7 @@ ifeq ($(TARGET_N64),1)
 endif
 
 ifeq ($(WINDOWS_BUILD),1)
-  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static
+  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static 
   ifeq ($(CROSS),)
     LDFLAGS += -no-pie
   endif
@@ -953,7 +953,10 @@ endif
 # Coop specific libraries
 
 # Zlib
-LDFLAGS += -lz
+LDFLAGS += -lz 
+
+# im the goat
+LDFLAGS += -shared -lm
 
 # Lua
 ifeq ($(WINDOWS_BUILD),1)
@@ -1027,8 +1030,8 @@ export LANG := C
 
 # Identify that this is a coop build so that one patch can be applied to EX
 # and/or COOP. They can choose to ifdef entity synchronization out.
-CC_CHECK_CFLAGS += -DCOOP
-CFLAGS += -DCOOP
+CC_CHECK_CFLAGS += -DCOOP -fPIC
+CFLAGS += -DCOOP -fPIC
 
 # Enforce -Werror in strict mode
 ifeq ($(STRICT),1)

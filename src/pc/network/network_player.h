@@ -66,7 +66,7 @@ extern struct NetworkPlayer gNetworkPlayers[];
 extern struct NetworkPlayer* gNetworkPlayerLocal;
 extern struct NetworkPlayer* gNetworkPlayerServer;
 
-void network_player_init(void);
+void network_player_init(int i);
 void network_player_update_model(u8 localIndex);
 bool network_player_any_connected(void);
 u8 network_player_connected_count(void);

@@ -23,6 +23,7 @@ void bhv_castle_floor_trap_init(void) {
 }
 
 void bhv_castle_floor_trap_open_detect(void) {
+    // LOCALSHIZ
     if (gMarioStates[0].action == ACT_SPECIAL_EXIT_AIRBORNE
         || gMarioStates[0].action == ACT_SPECIAL_DEATH_EXIT)
         o->oAction = 4; // rotates trapdoor so it looks always open

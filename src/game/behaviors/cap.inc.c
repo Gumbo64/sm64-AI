@@ -200,6 +200,7 @@ void normal_cap_set_save_flags(void) {
 
     switch (gCurrCourseNum) {
         case COURSE_SL:
+        // LOCALSHIZ
             gMarioStates[0].cap = SAVE_FLAG_CAP_ON_MR_BLIZZARD;
             break;
 

@@ -443,6 +443,7 @@ void init_mario_after_warp(void) {
         set_mario_initial_action(gMarioState, marioSpawnType, sWarpDest.arg);
 
         // remove offset from local mario during warps
+        // LOCALSHIZ
         if (sWarpDest.type == WARP_TYPE_SAME_AREA && marioSpawnType != MARIO_SPAWN_DOOR_WARP) {
             gMarioState[0].pos[0] = (s16)spawnNode->object->oPosX;
             gMarioState[0].pos[1] = (s16)spawnNode->object->oPosY;
@@ -824,6 +825,7 @@ void initiate_painting_warp(s16 paintingIndex) {
  */
 s16 level_trigger_warp(struct MarioState *m, s32 warpOp) {
     // only allow for local player
+    // LOCALSHIZ
     if (m != &gMarioStates[0]) { return 0; }
 
     s32 val04 = TRUE;
@@ -980,6 +982,8 @@ void initiate_delayed_warp(void) {
             switch (sDelayedWarpOp) {
                 case WARP_OP_GAME_OVER:
                     gChangeLevel = gLevelValues.entryLevel;
+
+                    // LOCALSHIZ
                     gMarioStates[0].numLives = 4;
                     gMarioStates[0].health = 0x880;
                     break;

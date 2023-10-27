@@ -21,11 +21,11 @@ struct NetworkPlayer *gNetworkPlayerLocal = NULL;
 struct NetworkPlayer *gNetworkPlayerServer = NULL;
 static char sDefaultPlayerName[] = "Player";
 
-void network_player_init(void) {
-    gNetworkPlayers[0].modelIndex = (configPlayerModel < CT_MAX) ? configPlayerModel : 0;
-    gNetworkPlayers[0].palette = configPlayerPalette;
-    gNetworkPlayers[0].overrideModelIndex = gNetworkPlayers[0].modelIndex;
-    gNetworkPlayers[0].overridePalette = gNetworkPlayers[0].palette;
+void network_player_init(int i) {
+    gNetworkPlayers[i].modelIndex = (configPlayerModel < CT_MAX) ? configPlayerModel : 0;
+    gNetworkPlayers[i].palette = configPlayerPalette;
+    gNetworkPlayers[i].overrideModelIndex = gNetworkPlayers[0].modelIndex;
+    gNetworkPlayers[i].overridePalette = gNetworkPlayers[0].palette;
     lag_compensation_clear();
 }
 

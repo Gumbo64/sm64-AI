@@ -863,6 +863,7 @@ void update_mario_sound_and_camera(struct MarioState *m) {
     if (!m) { return; }
 
     // only update for local player
+    // LOCALSHIZ
     if (m != &gMarioStates[0]) { return; }
     if (!m->area || !m->area->camera) { return; }
 
@@ -1759,6 +1760,7 @@ void update_mario_health(struct MarioState *m) {
             m->health = 0x880;
         }
         if (m->health < 0x100) {
+            //LOCALSHIZ
             if (m != &gMarioStates[0]) {
                 // never kill remote marios
                 m->health = 0x100;
@@ -1933,6 +1935,7 @@ void mario_update_hitbox_and_cap_model(struct MarioState *m) {
     }
 
     struct NetworkPlayer* np = &gNetworkPlayers[gMarioState->playerIndex];
+    // LOCALSHIZ
     u8 teleportFade = (m->flags & MARIO_TELEPORTING) || (gMarioState->playerIndex != 0 && np->fadeOpacity < 32);
     if (teleportFade && (m->fadeWarpOpacity != 0xFF)) {
         bodyState->modelState &= ~0xFF;
@@ -2319,11 +2322,11 @@ void init_single_mario(struct MarioState* m) {
     }*/
 
     // force all other players to be invisible by default
-    if (playerIndex != 0) {
-        m->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
-        m->wasNetworkVisible = false;
-        gNetworkPlayers[playerIndex].fadeOpacity = 0;
-    }
+    // if (playerIndex != 0) {
+    //     m->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
+    //     m->wasNetworkVisible = false;
+    //     gNetworkPlayers[playerIndex].fadeOpacity = 0;
+    // }
 
     // set character model
     u8 modelIndex = gNetworkPlayers[playerIndex].overrideModelIndex;

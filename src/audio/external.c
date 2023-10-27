@@ -1959,6 +1959,7 @@ void process_level_music_dynamics(void) {
         for (j = 0; j < condIndex; j++) {
             switch (conditionTypes[j]) {
                 case MARIO_X_GE: {
+                    // LOCALSHIZ
                     if (((s16) gMarioStates[0].pos[0]) < conditionValues[j]) {
                         j = condIndex + 1;
                     }

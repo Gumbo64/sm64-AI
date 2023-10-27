@@ -441,6 +441,7 @@ u32 mario_lose_cap_to_enemy(struct MarioState* m, u32 arg) {
     u32 wasWearingCap = FALSE;
 
     if (does_mario_have_normal_cap_on_head(m)) {
+        // LOCALSHIZ
         gMarioStates[0].cap = (arg == 1 ? SAVE_FLAG_CAP_ON_KLEPTO : SAVE_FLAG_CAP_ON_UKIKI);
         m->flags &= ~(MARIO_NORMAL_CAP | MARIO_CAP_ON_HEAD);
         wasWearingCap = TRUE;
@@ -879,6 +880,7 @@ void reset_mario_pitch(struct MarioState *m) {
 
 u32 interact_coin(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
+
     if (m != &gMarioStates[0] || (gDjuiInMainMenu && gCurrLevelNum == LEVEL_TTM)) {
         // only collect locally
         return FALSE;
@@ -913,6 +915,7 @@ u32 interact_water_ring(struct MarioState *m, UNUSED u32 interactType, struct Ob
 u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
     // only allow for local player
+    // LOCALSHIZ
     if (m != &gMarioStates[0]) { return FALSE; }
 
     u32 starIndex;

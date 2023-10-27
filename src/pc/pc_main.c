@@ -58,6 +58,8 @@
 #include "debug_context.h"
 #include "menu/intro_geo.h"
 
+#include <stdbool.h>
+
 #ifdef DISCORD_SDK
 #include "pc/discord/discord.h"
 #endif
@@ -283,11 +285,27 @@ void inthand(UNUSED int signum) {
     game_exit();
 }
 
-void main_func(void) {
-    const char *gamedir = gCLIOpts.GameDir[0] ? gCLIOpts.GameDir : FS_BASEDIR;
-    const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : sys_user_path();
-    fs_init(sys_ropaths, gamedir, userpath);
+// bool doRun = false;
+void step(){
+    gfx_start_frame();
+    produce_one_frame();
+    gfx_end_frame();
+    // printf("~~~~~~%s~~~~ %s~~~~~ AAAAAAAAAAAAAAAAAAAAAAA\n",gCLIOpts.GameDir,gCLIOpts.SavePath);
 
+}
+
+void main_func(void) {
+
+    // Ensure it is a server, avoid CLI options
+    gCLIOpts.NetworkPort = 7777;
+    gCLIOpts.Network = NT_SERVER;
+    gCLIOpts.FullScreen = 1;
+    // gCLIOpts
+
+    const char *gamedir = gCLIOpts.GameDir[0] ? gCLIOpts.GameDir : FS_BASEDIR;
+    const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : ".";
+    fs_init(sys_ropaths, gamedir, userpath);
+    printf("---------%s %s----------\n",gamedir,userpath);
     sync_objects_init_system();
     djui_unicode_init();
     djui_init();
@@ -390,7 +408,9 @@ void main_func(void) {
     audio_init();
     sound_init();
     bassh_init();
-    network_player_init();
+    network_player_init(0);
+    network_player_init(1);
+    network_player_init(2);
 
     thread5_game_loop(NULL);
 
@@ -405,21 +425,21 @@ void main_func(void) {
     }
 #endif
 
-    while (true) {
-        debug_context_reset();
-        CTX_BEGIN(CTX_FRAME);
-        wm_api->main_loop(produce_one_frame);
-#ifdef DISCORD_SDK
-        discord_update();
-#endif
-#ifdef DEBUG
-        fflush(stdout);
-        fflush(stderr);
-#endif
-        CTX_END(CTX_FRAME);
-    }
+//     while (true) {
+//         debug_context_reset();
+//         CTX_BEGIN(CTX_FRAME);
+//         wm_api->main_loop(step);
+// #ifdef DISCORD_SDK
+//         discord_update();
+// #endif
+// #ifdef DEBUG
+//         fflush(stdout);
+//         fflush(stderr);
+// #endif
+//         CTX_END(CTX_FRAME);
+//     }
 
-    bassh_deinit();
+//     bassh_deinit();
 }
 
 int main(int argc, char *argv[]) {
@@ -427,3 +447,6 @@ int main(int argc, char *argv[]) {
     main_func();
     return 0;
 }
+
+
+

@@ -145,6 +145,10 @@ bool network_init(enum NetworkType inNetworkType, bool reconnecting) {
         dynos_behavior_hook_all_custom_behaviors();
 
         network_player_connected(NPT_LOCAL, 0, configPlayerModel, &configPlayerPalette, configPlayerName);
+
+        // network_player_connected(NPT_SERVER, 4, 0, &DEFAULT_MARIO_PALETTE, "Player");
+        // network_player_connected(NPT_SERVER, 1, configPlayerModel, &DEFAULT_MARIO_PALETTE, "Botfam");
+        
         extern u8* gOverrideEeprom;
         gOverrideEeprom = NULL;
 
@@ -651,7 +655,12 @@ void network_shutdown(bool sendLeaving, bool exiting, bool popup, bool reconnect
     if (gSkipInterpolationTitleScreen || find_object_with_behavior(bhvActSelector) != NULL) {
         dynos_warp_to_level(LEVEL_CASTLE_GROUNDS, 1, 0);
     }
-    network_player_init();
+
+
+    network_player_init(0);
+
+
+
     camera_set_use_course_specific_settings(true);
     free_vtx_scroll_targets();
     gMarioStates[0].cap = 0;

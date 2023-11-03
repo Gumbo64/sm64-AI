@@ -1737,12 +1737,14 @@ s32 act_squished(struct MarioState *m) {
             if (spaceUnderCeil > 160.0f) {
                 m->squishTimer = 0;
                 // prevent infinite loop for remote players
-                if (m == &gMarioStates[0]) {
-                    return set_mario_action(m, ACT_IDLE, 0);
-                } else {
-                    set_mario_action(m, ACT_IDLE, 0);
-                    return FALSE;
-                }
+                // if (m == &gMarioStates[0]) {
+                //     return set_mario_action(m, ACT_IDLE, 0);
+                // } 
+                // else {
+                //     set_mario_action(m, ACT_IDLE, 0);
+                //     return FALSE;
+                // }
+                return set_mario_action(m, ACT_IDLE, 0);
             }
 
             m->squishTimer = 0xFF;
@@ -1816,25 +1818,25 @@ s32 act_squished(struct MarioState *m) {
 
     // squished for more than 10 seconds, so kill Mario
     if (m->actionArg++ > 300) {
-        if (m->playerIndex != 0) {
-            // never kill remote marios
-            m->health = 0x100;
-        } else {
-            bool allowDeath = true;
-            smlua_call_event_hooks_mario_param_ret_bool(HOOK_ON_DEATH, m, &allowDeath);
-            if (!allowDeath) { return FALSE; }
+        // if (m->playerIndex != 0) {
+        //     // never kill remote marios
+        //     m->health = 0x100;
+        // } else {
+        bool allowDeath = true;
+        smlua_call_event_hooks_mario_param_ret_bool(HOOK_ON_DEATH, m, &allowDeath);
+        if (!allowDeath) { return FALSE; }
 
-            if (mario_can_bubble(m)) {
-                mario_set_bubbled(m);
-            } else {
-                // 0 units of health
-                m->health = 0x00FF;
-                m->hurtCounter = 0;
-                level_trigger_warp(m, WARP_OP_DEATH);
-                // woosh, he's gone!
-                set_mario_action(m, ACT_DISAPPEARED, 0);
-            }
+        if (mario_can_bubble(m)) {
+            mario_set_bubbled(m);
+        } else {
+            // 0 units of health
+            m->health = 0x00FF;
+            m->hurtCounter = 0;
+            level_trigger_warp(m, WARP_OP_DEATH);
+            // woosh, he's gone!
+            set_mario_action(m, ACT_DISAPPEARED, 0);
         }
+        // }
     }
     stop_and_set_height_to_floor(m);
     set_mario_animation(m, MARIO_ANIM_A_POSE);
@@ -3044,10 +3046,10 @@ static s32 act_end_waving_cutscene(struct MarioState *m) {
 
 static s32 check_for_instant_quicksand(struct MarioState *m) {
     if (!m) { return 0; }
-    if (m != &gMarioStates[0]) {
-        // never kill remote marios
-        return FALSE;
-    }
+    // if (m != &gMarioStates[0]) {
+    //     // never kill remote marios
+    //     return FALSE;
+    // }
     if (m->action == ACT_BUBBLED) { return FALSE; }
 
     if (m->floor && m->floor->type == SURFACE_INSTANT_QUICKSAND && m->action & ACT_FLAG_INVULNERABLE && m->action != ACT_QUICKSAND_DEATH && m->action != ACT_SHOCKED) {

@@ -1397,10 +1397,11 @@ s32 act_burning_ground(struct MarioState *m) {
     m->health -= 10;
     if (m->health < 0x100) {
         extern struct MarioState gMarioStates[];
-        if (m == &gMarioStates[0]) {
-            // never kill remote marios
-            set_mario_action(m, ACT_STANDING_DEATH, 0);
-        }
+        // if (m == &gMarioStates[0]) {
+        //     // never kill remote marios
+        //     set_mario_action(m, ACT_STANDING_DEATH, 0);
+        // }
+        set_mario_action(m, ACT_STANDING_DEATH, 0);
     }
 
     m->marioBodyState->eyeState = MARIO_EYES_DEAD;

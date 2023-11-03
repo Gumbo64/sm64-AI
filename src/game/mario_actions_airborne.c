@@ -1046,13 +1046,15 @@ s32 act_burning_jump(struct MarioState *m) {
 
     m->health -= 10;
     if (m->health < 0x100) {
-        if (m != &gMarioStates[0]) {
-            // never kill remote marios
-            m->health = 0x100;
-        } else {
-            m->health = 0xFF;
-        }
+        // if (m != &gMarioStates[0]) {
+        //     // never kill remote marios
+        //     m->health = 0x100;
+        // } else {
+        //     m->health = 0xFF;
+        // }
+        m->health = 0xFF;
     }
+    
 
     reset_rumble_timers(m);
     return FALSE;
@@ -1073,12 +1075,13 @@ s32 act_burning_fall(struct MarioState *m) {
 
     m->health -= 10;
     if (m->health < 0x100) {
-        if (m != &gMarioStates[0]) {
-            // never kill remote marios
-            m->health = 0x100;
-        } else {
-            m->health = 0xFF;
-        }
+        // if (m != &gMarioStates[0]) {
+        //     // never kill remote marios
+        //     m->health = 0x100;
+        // } else {
+        //     m->health = 0xFF;
+        // }
+        m->health = 0xFF;
     }
 
     reset_rumble_timers(m);
@@ -1633,24 +1636,24 @@ s32 act_lava_boost(struct MarioState *m) {
     }
 
     if (m->health < 0x100) {
-        if (m != &gMarioStates[0]) {
-            // never kill remote marios
-            m->health = 0x100;
-        } else {
-            bool allowDeath = true;
-            smlua_call_event_hooks_mario_param_ret_bool(HOOK_ON_DEATH, m, &allowDeath);
-            if (!allowDeath) {
-                reset_rumble_timers(m);
-                return FALSE;
-            }
-
-            if (mario_can_bubble(m)) {
-                m->health = 0xFF;
-                mario_set_bubbled(m);
-            } else {
-                level_trigger_warp(m, WARP_OP_DEATH);
-            }
+        // if (m != &gMarioStates[0]) {
+        //     // never kill remote marios
+        //     m->health = 0x100;
+        // } else {
+        bool allowDeath = true;
+        smlua_call_event_hooks_mario_param_ret_bool(HOOK_ON_DEATH, m, &allowDeath);
+        if (!allowDeath) {
+            reset_rumble_timers(m);
+            return FALSE;
         }
+
+        if (mario_can_bubble(m)) {
+            m->health = 0xFF;
+            mario_set_bubbled(m);
+        } else {
+            level_trigger_warp(m, WARP_OP_DEATH);
+        }
+        // }
     }
 
     m->marioBodyState->eyeState = MARIO_EYES_DEAD;

@@ -361,7 +361,7 @@ void makemariolol(){
     // network_player_init(15);
     // network_player_init(14);
     // init_mario();
-    network_player_connected(NPT_SERVER, 1, 0, &DEFAULT_MARIO_PALETTE, "Botfam1");
+    network_player_connected(NPT_SERVER, 1, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
     
 
     init_mario();

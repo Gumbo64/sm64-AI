@@ -1440,8 +1440,9 @@ void debug_print_speed_action_normal(struct MarioState *m) {
 void update_mario_button_inputs(struct MarioState *m) {
     if (!m) { return; }
 
-    // don't update remote inputs
-    if (m->playerIndex != 0) { return; }
+    //// don't update remote inputs
+    // DO update remote inputs :)
+    // if (m->playerIndex != 0) { return; }
 
     if (m->controller->buttonPressed & A_BUTTON) {
         m->input |= INPUT_A_PRESSED;
@@ -1763,12 +1764,13 @@ void update_mario_health(struct MarioState *m) {
         }
         if (m->health < 0x100) {
             //LOCALSHIZ
-            if (m != &gMarioStates[0]) {
-                // never kill remote marios
-                m->health = 0x100;
-            } else {
-                m->health = 0xFF;
-            }
+            // if (m != &gMarioStates[0]) {
+            //     // never kill remote marios
+            //     m->health = 0x100;
+            // } else {
+            //     m->health = 0xFF;
+            // }
+            m->health = 0xFF;
         }
 
         if (m->playerIndex == 0) {
@@ -2343,6 +2345,7 @@ void init_single_mario(struct MarioState* m) {
 void init_mario(void) {
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         gMarioStates[i].playerIndex = i;
+        gMarioStates[i].controller = &gControllers[i];
         init_single_mario(&gMarioStates[i]);
     }
 }

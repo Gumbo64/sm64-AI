@@ -1045,10 +1045,10 @@ u32 interact_warp(struct MarioState *m, UNUSED u32 interactType, struct Object *
     if (!m || !o) { return FALSE; }
     u32 action;
 
-    if (m != &gMarioStates[0]) {
-        // don't do for remote players
-        return FALSE;
-    }
+    // if (m != &gMarioStates[0]) {
+    //     // don't do for remote players
+    //     return FALSE;
+    // }
 
     if (o->oInteractionSubtype & INT_SUBTYPE_FADING_WARP) {
         action = m->action;
@@ -2307,10 +2307,10 @@ void mario_process_interactions(struct MarioState *m) {
         s32 i;
         for (i = 0; i < 32; i++) {
             u32 interactType = sInteractionHandlers[i].interactType;
-            if (m->playerIndex != 0 && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE) {
-                // skip interactions for remote
-                continue;
-            }
+            // if (m->playerIndex != 0 && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE) {
+            //     // skip interactions for remote
+            //     continue;
+            // }
             if (m->collidedObjInteractTypes & interactType) {
                 struct Object *object = mario_get_collided_object(m, interactType);
 

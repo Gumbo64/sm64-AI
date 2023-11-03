@@ -609,6 +609,25 @@ void game_loop_one_iteration(void) {
     audio_game_loop_tick();
     config_gfx_pool();
     read_controller_inputs();
+
+    for (s32 i = 1; i < MAX_PLAYERS; i++) {
+        struct Controller *controller = &gControllers[i];
+        // if we're receiving inputs, update the controller struct
+        // with the new button info.
+        controller->controllerData = gControllers[0].controllerData;
+        if (controller->controllerData != NULL) {
+            controller->rawStickX = gControllers[0].controllerData->stick_x;
+            controller->rawStickY = gControllers[0].controllerData->stick_y;
+            controller->extStickX = gControllers[0].controllerData->ext_stick_x;
+            controller->extStickY = gControllers[0].controllerData->ext_stick_y;
+            adjust_analog_stick(controller);
+            
+        }
+
+    }
+
+
+
     levelCommandAddr = level_script_execute(levelCommandAddr);
     display_and_vsync();
 

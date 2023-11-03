@@ -1494,7 +1494,9 @@ void update_mario_joystick_inputs(struct MarioState *m) {
     }
 
     // don't update remote inputs past this point
-    if ((sCurrPlayMode == PLAY_MODE_PAUSED) || m->playerIndex != 0) { return; }
+    // LOCALSHIZ
+    // if ((sCurrPlayMode == PLAY_MODE_PAUSED) || m->playerIndex != 0) { return; }
+    if ((sCurrPlayMode == PLAY_MODE_PAUSED)) { return; }
 
     if (m->intendedMag > 0.0f) {
 #ifndef BETTERCAMERA
@@ -2023,62 +2025,62 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         gMarioState->knockbackTimer--;
     }
 
-    // hide inactive players
-    struct NetworkPlayer *np = &gNetworkPlayers[gMarioState->playerIndex];
-    if (gMarioState->playerIndex != 0) {
-        bool levelAreaMismatch = ((gNetworkPlayerLocal == NULL)
-            || np->currCourseNum != gNetworkPlayerLocal->currCourseNum
-            || np->currActNum    != gNetworkPlayerLocal->currActNum
-            || np->currLevelNum  != gNetworkPlayerLocal->currLevelNum
-            || np->currAreaIndex != gNetworkPlayerLocal->currAreaIndex);
+    // // hide inactive players
+    // struct NetworkPlayer *np = &gNetworkPlayers[gMarioState->playerIndex];
+    // if (gMarioState->playerIndex != 0) {
+    //     bool levelAreaMismatch = ((gNetworkPlayerLocal == NULL)
+    //         || np->currCourseNum != gNetworkPlayerLocal->currCourseNum
+    //         || np->currActNum    != gNetworkPlayerLocal->currActNum
+    //         || np->currLevelNum  != gNetworkPlayerLocal->currLevelNum
+    //         || np->currAreaIndex != gNetworkPlayerLocal->currAreaIndex);
 
-        bool fadedOut = gNetworkAreaLoaded && (levelAreaMismatch && gMarioState->wasNetworkVisible && np->fadeOpacity == 0);
-        bool wasNeverVisible = gNetworkAreaLoaded && !gMarioState->wasNetworkVisible;
+    //     bool fadedOut = gNetworkAreaLoaded && (levelAreaMismatch && gMarioState->wasNetworkVisible && np->fadeOpacity == 0);
+    //     bool wasNeverVisible = gNetworkAreaLoaded && !gMarioState->wasNetworkVisible;
 
-        if (!gNetworkAreaLoaded || fadedOut || wasNeverVisible) {
-            gMarioState->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
-            gMarioState->marioObj->oIntangibleTimer = -1;
-            mario_stop_riding_and_holding(gMarioState);
+    //     if (!gNetworkAreaLoaded || fadedOut || wasNeverVisible) {
+    //         gMarioState->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
+    //         gMarioState->marioObj->oIntangibleTimer = -1;
+    //         mario_stop_riding_and_holding(gMarioState);
 
-            // drop their held object
-            if (gMarioState->heldObj != NULL) {
-                LOG_INFO("dropping held object");
-                u8 tmpPlayerIndex = gMarioState->playerIndex;
-                gMarioState->playerIndex = 0;
-                mario_drop_held_object(gMarioState);
-                gMarioState->playerIndex = tmpPlayerIndex;
-            }
+    //         // drop their held object
+    //         if (gMarioState->heldObj != NULL) {
+    //             LOG_INFO("dropping held object");
+    //             u8 tmpPlayerIndex = gMarioState->playerIndex;
+    //             gMarioState->playerIndex = 0;
+    //             mario_drop_held_object(gMarioState);
+    //             gMarioState->playerIndex = tmpPlayerIndex;
+    //         }
 
-            // no longer held by an object
-            if (gMarioState->heldByObj != NULL) {
-                LOG_INFO("dropping heldby object");
-                gMarioState->heldByObj = NULL;
-            }
+    //         // no longer held by an object
+    //         if (gMarioState->heldByObj != NULL) {
+    //             LOG_INFO("dropping heldby object");
+    //             gMarioState->heldByObj = NULL;
+    //         }
 
-            // no longer riding object
-            if (gMarioState->riddenObj != NULL) {
-                LOG_INFO("dropping ridden object");
-                u8 tmpPlayerIndex = gMarioState->playerIndex;
-                gMarioState->playerIndex = 0;
-                mario_stop_riding_object(gMarioState);
-                gMarioState->playerIndex = tmpPlayerIndex;
-            }
+    //         // no longer riding object
+    //         if (gMarioState->riddenObj != NULL) {
+    //             LOG_INFO("dropping ridden object");
+    //             u8 tmpPlayerIndex = gMarioState->playerIndex;
+    //             gMarioState->playerIndex = 0;
+    //             mario_stop_riding_object(gMarioState);
+    //             gMarioState->playerIndex = tmpPlayerIndex;
+    //         }
 
-            return 0;
-        }
+    //         return 0;
+    //     }
 
-        if (levelAreaMismatch && gMarioState->wasNetworkVisible) {
-            if (np->fadeOpacity <= 2) {
-                np->fadeOpacity = 0;
-            } else {
-                np->fadeOpacity -= 2;
-            }
-            gMarioState->fadeWarpOpacity = np->fadeOpacity << 3;
-        } else if (np->fadeOpacity < 32) {
-            np->fadeOpacity += 2;
-            gMarioState->fadeWarpOpacity = np->fadeOpacity << 3;
-        }
-    }
+    //     if (levelAreaMismatch && gMarioState->wasNetworkVisible) {
+    //         if (np->fadeOpacity <= 2) {
+    //             np->fadeOpacity = 0;
+    //         } else {
+    //             np->fadeOpacity -= 2;
+    //         }
+    //         gMarioState->fadeWarpOpacity = np->fadeOpacity << 3;
+    //     } else if (np->fadeOpacity < 32) {
+    //         np->fadeOpacity += 2;
+    //         gMarioState->fadeWarpOpacity = np->fadeOpacity << 3;
+    //     }
+    // }
 
     if (gServerSettings.enableCheats) {
         if (gCheats.godMode) {
@@ -2091,8 +2093,11 @@ s32 execute_mario_action(UNUSED struct Object *o) {
             gMarioState->numLives = 100;
         }
     }
+    //LOCALSHIZ TESTING LOOOL
+    // gMarioState->controller = &gControllers[0];
 
-    if (gMarioState->action) {
+    // if (gMarioState->action) {
+    if (true) {
         if (gMarioState->action != ACT_BUBBLED) {
             gMarioState->marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
         }

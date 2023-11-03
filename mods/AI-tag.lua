@@ -1,6 +1,6 @@
--- name: Hide and Seek
+-- name: AI Hide and Seek
 -- incompatible: gamemode
--- description: A simple hide-and-seek gamemode for\nCo-op.\n\nThe game is split into two teams:\n\nHiders and Seekers. The goal is for all\n\Hiders to be converted into a Seeker within a certain timeframe.\n\nAll Seekers appear as a metal character.\n\nEnjoy! :D\n\nConcept by: Super Keeberghrh
+-- description: AI lol
 
 -- constants
 local ROUND_STATE_WAIT        = 0

@@ -64,6 +64,9 @@
 #include "pc/discord/discord.h"
 #endif
 
+
+#include "game/object_list_processor.h"
+
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
 
@@ -289,11 +292,97 @@ void inthand(UNUSED int signum) {
 void step(){
     gfx_start_frame();
     produce_one_frame();
+
     gfx_end_frame();
-    // printf("~~~~~~%s~~~~ %s~~~~~ AAAAAAAAAAAAAAAAAAAAAAA\n",gCLIOpts.GameDir,gCLIOpts.SavePath);
+    printf("~~~~~~%f~~~~ %f~~    %f~~~ AAAAAAAAAAAAAAAAAAAAAAA\n",gMarioStates[0].pos[0],gMarioStates[0].pos[1],gMarioStates[0].pos[2]);
 
 }
 
+
+
+void force_make_network_player(int localIndex){
+    int globalIndex = localIndex;
+    gMarioStates[localIndex].marioObj = gMarioObjects[localIndex];
+
+    struct NetworkPlayer *np = &gNetworkPlayers[localIndex];
+    u8 modelIndex = 0;  
+
+
+    ////////////////////// START ///////////////////////////////////////////
+    // clear
+    memset(np, 0, sizeof(struct NetworkPlayer));
+
+    // update fundamentals
+    np->connected = true;
+    np->type = NPT_LOCAL;
+    np->localIndex = localIndex;
+    np->globalIndex = globalIndex;
+    np->ping = 600;
+
+    network_player_set_description(np, NULL, 0, 0, 0, 0);
+
+    // update course/level
+    np->currLevelAreaSeqId = 0;
+    np->currLevelSyncValid = false;
+    np->currAreaSyncValid = false;
+    np->currPositionValid = false;
+
+    // level number 16 is LEVEL_CASTLE_GROUNDS
+    network_player_update_course_level(np, 0, 0, 16, 1);
+
+    // update visuals
+    
+    np->fadeOpacity = 30;
+    np->modelIndex = modelIndex;
+    np->palette = DEFAULT_MARIO_PALETTE;
+    np->overrideModelIndex = modelIndex;
+    np->overridePalette = DEFAULT_MARIO_PALETTE;
+
+    np->paletteIndex           = USE_REAL_PALETTE_VAR;
+    np->overridePaletteIndex   = USE_REAL_PALETTE_VAR;
+    np->overridePaletteIndexLp = USE_REAL_PALETTE_VAR;
+
+    snprintf(np->name, MAX_PLAYER_STRING, "%s", "BOTPLAYER");
+    network_player_update_model(localIndex);
+
+    // clear networking fields
+    np->lastReceived = clock_elapsed();
+    np->lastSent = clock_elapsed();
+    np->onRxSeqId = 0;
+
+    
+
+    // ///////// END //////////////////////////////////
+}
+
+void makemariolol(){
+    // force_make_network_player(15);
+    // force_make_network_player(14);
+    // network_player_init(15);
+    // network_player_init(14);
+    // init_mario();
+    network_player_connected(NPT_SERVER, 1, 0, &DEFAULT_MARIO_PALETTE, "Botfam1");
+    
+
+    init_mario();
+
+
+    // network_player_connected(NPT_LOCAL, 2, 0, &DEFAULT_MARIO_PALETTE, "Botfam2");
+    // network_player_connected(NPT_CLIENT, 3, 0, &DEFAULT_MARIO_PALETTE, "Botfam3");
+    // network_player_init(1);
+    // init_level();
+   
+    
+    // gCurrentObject = &(gMarioStates[0]->MarioObj);
+    // copy_mario_state_to_object(&(gMarioStates[1]->MarioObj));
+    // copy_mario_state_to_object(&(gMarioStates[2]->MarioObj));
+    // gMarioStates[1] = gMarioStates[0];
+    // // memcpy(&gMarioStates[1], &gMarioStates[0], sizeof(struct MarioState));
+    // write_packet_data()
+    // network_receive_player()
+    // printf("%d \n",gMarioStates[1].marioObj. == NULL);
+    
+}
 void main_func(void) {
 
     // Ensure it is a server, avoid CLI options
@@ -409,8 +498,9 @@ void main_func(void) {
     sound_init();
     bassh_init();
     network_player_init(0);
-    network_player_init(1);
-    network_player_init(2);
+   
+    // network_player_init(1);
+    // force_make_network_player(0);
 
     thread5_game_loop(NULL);
 
@@ -441,6 +531,9 @@ void main_func(void) {
 
 //     bassh_deinit();
 }
+
+
+
 
 int main(int argc, char *argv[]) {
     parse_cli_opts(argc, argv);

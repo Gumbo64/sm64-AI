@@ -271,6 +271,8 @@ void bhv_mario_update(void) {
 
     // set mario state to the current player
     s32 stateIndex = (gCurrentObject->oBehParams - 1);
+    // s32 stateIndex = (gCurrentObject->oBehParams);
+
     if (stateIndex >= MAX_PLAYERS || stateIndex < 0) { return; }
     gMarioState = &gMarioStates[stateIndex];
 

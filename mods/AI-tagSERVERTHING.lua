@@ -1,4 +1,4 @@
--- name: AI Hide and Seek
+-- name: NOT AI HIDE AND SEEK
 -- incompatible: gamemode
 -- description: AI oriented version of the default hide and seek mode
 -- constants

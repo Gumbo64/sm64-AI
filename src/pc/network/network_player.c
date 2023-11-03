@@ -155,64 +155,64 @@ void network_player_update(void) {
     lag_compensation_store();
 
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
-        struct NetworkPlayer *np = &gNetworkPlayers[i];
-        if (!np->connected && i > 0) { continue; }
+        // struct NetworkPlayer *np = &gNetworkPlayers[i];
+        // if (!np->connected && i > 0) { continue; }
 
         network_player_update_model(i);
     }
 
-    if (!network_player_any_connected()) { return; }
+    // if (!network_player_any_connected()) { return; }
 
 
-    for (s32 i = 1; i < MAX_PLAYERS; i++) {
-        struct NetworkPlayer *np = &gNetworkPlayers[i];
-        if (!np->connected && i > 0) { continue; }
-        float elapsed = (clock_elapsed() - np->lastPingSent);
-        if (elapsed > NETWORK_PLAYER_PING_TIMEOUT) {
-            network_send_ping(np);
-        }
-        //LOG_INFO("Ping %s: %u", np->name, np->ping / 2);
-    }
+    // for (s32 i = 1; i < MAX_PLAYERS; i++) {
+    //     struct NetworkPlayer *np = &gNetworkPlayers[i];
+    //     // if (!np->connected && i > 0) { continue; }
+    //     float elapsed = (clock_elapsed() - np->lastPingSent);
+    //     if (elapsed > NETWORK_PLAYER_PING_TIMEOUT) {
+    //         network_send_ping(np);
+    //     }
+    //     //LOG_INFO("Ping %s: %u", np->name, np->ping / 2);
+    // }
 
-    if (gNetworkType == NT_SERVER) {
-        for (s32 i = 1; i < MAX_PLAYERS; i++) {
-            struct NetworkPlayer *np = &gNetworkPlayers[i];
-            if (!np->connected && i > 0) { continue; }
+//     if (gNetworkType == NT_SERVER) {
+//         for (s32 i = 1; i < MAX_PLAYERS; i++) {
+//             struct NetworkPlayer *np = &gNetworkPlayers[i];
+//             if (!np->connected && i > 0) { continue; }
 
-            float elapsed = (clock_elapsed() - np->lastReceived);
-#ifdef DEVELOPMENT
-            if (elapsed > NETWORK_PLAYER_TIMEOUT && (gNetworkSystem != &gNetworkSystemSocket)) {
-#else
-            if (elapsed > NETWORK_PLAYER_TIMEOUT) {
-#endif
-                LOG_INFO("dropping player %d", i);
-                network_player_disconnected(i);
-                continue;
-            }
-            elapsed = (clock_elapsed() - np->lastSent);
-            if (elapsed > NETWORK_PLAYER_TIMEOUT / 3.0f) {
-                network_send_keep_alive(np->localIndex);
-            }
-        }
-    } else if (gNetworkType == NT_CLIENT && gNetworkSentJoin) {
-        struct NetworkPlayer *np = gNetworkPlayerServer;
-        if (!np->connected) { return; }
-        float elapsed = (clock_elapsed() - np->lastReceived);
+//             float elapsed = (clock_elapsed() - np->lastReceived);
+// #ifdef DEVELOPMENT
+//             if (elapsed > NETWORK_PLAYER_TIMEOUT && (gNetworkSystem != &gNetworkSystemSocket)) {
+// #else
+//             if (elapsed > NETWORK_PLAYER_TIMEOUT) {
+// #endif
+//                 LOG_INFO("dropping player %d", i);
+//                 network_player_disconnected(i);
+//                 continue;
+//             }
+//             elapsed = (clock_elapsed() - np->lastSent);
+//             if (elapsed > NETWORK_PLAYER_TIMEOUT / 3.0f) {
+//                 network_send_keep_alive(np->localIndex);
+//             }
+//         }
+//     } else if (gNetworkType == NT_CLIENT && gNetworkSentJoin) {
+//         struct NetworkPlayer *np = gNetworkPlayerServer;
+//         if (!np->connected) { return; }
+//         float elapsed = (clock_elapsed() - np->lastReceived);
 
-#ifdef DEVELOPMENT
-        if (elapsed > NETWORK_PLAYER_TIMEOUT * 1.5f && (gNetworkSystem != &gNetworkSystemSocket)) {
-#else
-        if (elapsed > NETWORK_PLAYER_TIMEOUT * 1.5f) {
-#endif
-            LOG_INFO("dropping due to no server connectivity");
-            network_shutdown(false, false, true, false);
-        }
+// #ifdef DEVELOPMENT
+//         if (elapsed > NETWORK_PLAYER_TIMEOUT * 1.5f && (gNetworkSystem != &gNetworkSystemSocket)) {
+// #else
+//         if (elapsed > NETWORK_PLAYER_TIMEOUT * 1.5f) {
+// #endif
+//             LOG_INFO("dropping due to no server connectivity");
+//             network_shutdown(false, false, true, false);
+//         }
 
-        elapsed = (clock_elapsed() - np->lastSent);
-        if (elapsed > NETWORK_PLAYER_TIMEOUT / 3.0f) {
-            network_send_keep_alive(np->localIndex);
-        }
-    }
+//         elapsed = (clock_elapsed() - np->lastSent);
+//         if (elapsed > NETWORK_PLAYER_TIMEOUT / 3.0f) {
+//             network_send_keep_alive(np->localIndex);
+//         }
+    // }
 }
 
 extern bool gCurrentlyJoining;
@@ -274,7 +274,7 @@ u8 network_player_connected(enum NetworkPlayerType type, u8 globalIndex, u8 mode
     network_player_update_course_level(np, 0, 0, gLevelValues.entryLevel, 1);
 
     // update visuals
-    np->fadeOpacity = 0;
+    np->fadeOpacity = 32;
     np->modelIndex = modelIndex;
     np->palette = *palette;
     np->overrideModelIndex = modelIndex;
@@ -311,9 +311,11 @@ u8 network_player_connected(enum NetworkPlayerType type, u8 globalIndex, u8 mode
     }
 
     // display connected popup
-    if (!gCurrentlyJoining && type != NPT_SERVER && (gNetworkType != NT_SERVER || type != NPT_LOCAL)) {
-        construct_player_popup(np, DLANG(NOTIF, CONNECTED), NULL);
-    }
+    // if (!gCurrentlyJoining && type != NPT_SERVER && (gNetworkType != NT_SERVER || type != NPT_LOCAL)) {
+    //     construct_player_popup(np, DLANG(NOTIF, CONNECTED), NULL);
+    // }
+    construct_player_popup(np, DLANG(NOTIF, CONNECTED), NULL);
+    
     LOG_INFO("player connected, local %d, global %d", localIndex, np->globalIndex);
 
     smlua_call_event_hooks_mario_param(HOOK_ON_PLAYER_CONNECTED, &gMarioStates[localIndex]);

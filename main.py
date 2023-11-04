@@ -12,7 +12,7 @@ funky.main_func()
 # time.sleep(2)
 # funky.step.restype = MarioState
 
-for i in range(300):
+for i in range(800):
 
     # print("------------------")
     # inputmariolol = MarioInput(10,10,0)

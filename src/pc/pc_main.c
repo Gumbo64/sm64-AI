@@ -294,7 +294,7 @@ void step(){
     produce_one_frame();
 
     gfx_end_frame();
-    printf("~~~~~~%f~~~~ %f~~    %f~~~ AAAAAAAAAAAAAAAAAAAAAAA\n",gMarioStates[0].pos[0],gMarioStates[0].pos[1],gMarioStates[0].pos[2]);
+    // printf("~~~~~~%f~~~~ %f~~ %f~~~\n",gMarioStates[0].pos[0],gMarioStates[0].pos[1],gMarioStates[0].pos[2]);
 
 }
 

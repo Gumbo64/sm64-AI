@@ -1595,7 +1595,8 @@ copyPlayerGoto:;
  */
 void update_mario_inputs(struct MarioState *m) {
     if (!m) { return; }
-    if (m->playerIndex == 0) { m->input = 0; }
+    // if (m->playerIndex == 0) { m->input = 0; }
+    m->input = 0;
 
     u8 localIsPaused = (m->playerIndex == 0) && (sCurrPlayMode == PLAY_MODE_PAUSED || m->freeze > 0);
 

@@ -484,7 +484,7 @@ void read_controller_inputs(void) {
             controller->extStickY = controller->controllerData->ext_stick_y;
             controller->buttonPressed = controller->controllerData->button
                                         & (controller->controllerData->button ^ controller->buttonDown);
-            // 0.5x A presses are a good meme
+
             controller->buttonDown = controller->controllerData->button;
             adjust_analog_stick(controller);
         } else if (i != 0) {
@@ -620,6 +620,12 @@ void game_loop_one_iteration(void) {
             controller->rawStickY = gControllers[0].controllerData->stick_y;
             controller->extStickX = gControllers[0].controllerData->ext_stick_x;
             controller->extStickY = gControllers[0].controllerData->ext_stick_y;
+
+            controller->buttonPressed = controller->controllerData->button
+                            & (controller->controllerData->button ^ controller->buttonDown);
+
+            controller->buttonDown = controller->controllerData->button;
+            
             adjust_analog_stick(controller);
             
         }

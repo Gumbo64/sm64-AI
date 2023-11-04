@@ -12,7 +12,7 @@ funky.main_func()
 # time.sleep(2)
 # funky.step.restype = MarioState
 
-for i in range(800):
+for i in range(100):
 
     # print("------------------")
     # inputmariolol = MarioInput(10,10,0)
@@ -22,8 +22,8 @@ for i in range(800):
     # print(f"{list(a.faceAngle)}")
 
 
-# for i in range(10):
-funky.makemariolol()
+for i in range(1,512):
+    funky.makemariolol(i)
 
 while True:
     a = funky.step()

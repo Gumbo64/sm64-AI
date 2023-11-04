@@ -444,6 +444,7 @@ void network_player_update_course_level(struct NetworkPlayer* np, s16 courseNum,
             }
 
             // If this machine's player changed to a different location, then all of the other np locations are no longer valid
+            // LOCALSHIZ PHASE 2
             for (u32 i = 1; i < MAX_PLAYERS; i++) {
                 struct NetworkPlayer* npi = &gNetworkPlayers[i];
                 if ((!npi->connected) || npi == gNetworkPlayerLocal) { continue; }

@@ -355,25 +355,25 @@ void force_make_network_player(int localIndex){
     // ///////// END //////////////////////////////////
 }
 
-void makemariolol(){
+void makemariolol(int i){
     // force_make_network_player(15);
     // force_make_network_player(14);
     // network_player_init(15);
     // network_player_init(14);
     // init_mario();
-    for(int i=1; i<MAX_PLAYERS;i++){
-        struct NetworkPlayer* np = &gNetworkPlayers[i];
-        network_player_connected(NPT_SERVER, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
+    // for(int i=1; i<MAX_PLAYERS;i++){
+    struct NetworkPlayer* np = &gNetworkPlayers[i];
+    network_player_connected(NPT_SERVER, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
 
-        // network_player_update_course_level(gNetworkPlayerLocal, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
+    // network_player_update_course_level(gNetworkPlayerLocal, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
 
 
-        // MARIOS LIVE ON ANOTHER PLANE OF COLLISION IF U CHANGE THIS
-        // network_player_update_course_level(np, 0, 0, LEVEL_CASTLE_GROUNDS, 1);
-        network_player_update_course_level(np, 1, 1, LEVEL_BOB, 1);
-    }
+    // MARIOS LIVE ON ANOTHER PLANE OF COLLISION IF U CHANGE THIS
+    // network_player_update_course_level(np, 0, 0, LEVEL_CASTLE_GROUNDS, 1);
+    // network_player_update_course_level(np, 1, 1, LEVEL_BOB, 1);
+    // }
 
-    init_mario();
+    // init_mario();
 
 
     // network_player_connected(NPT_LOCAL, 2, 0, &DEFAULT_MARIO_PALETTE, "Botfam2");

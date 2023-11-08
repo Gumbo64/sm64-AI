@@ -616,8 +616,14 @@ void game_loop_one_iteration(void) {
         // with the new button info.
         controller->controllerData = gControllers[0].controllerData;
         if (controller->controllerData != NULL) {
-            controller->rawStickX = gControllers[0].controllerData->stick_x + random_u16() % 20;
-            controller->rawStickY = gControllers[0].controllerData->stick_y + random_u16() % 20;
+
+            // the random part is added so that the marios dont just overlap constantly
+            // controller->rawStickX = gControllers[0].controllerData->stick_x;
+            // controller->rawStickY = gControllers[0].controllerData->stick_y;
+
+            controller->rawStickX = gControllers[0].controllerData->stick_x + random_sign() * random_u16() % 10;
+            controller->rawStickY = gControllers[0].controllerData->stick_y + random_sign() * random_u16() % 10;
+
             controller->extStickX = gControllers[0].controllerData->ext_stick_x;
             controller->extStickY = gControllers[0].controllerData->ext_stick_y;
 

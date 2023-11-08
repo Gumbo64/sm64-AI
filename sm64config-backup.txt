@@ -66,13 +66,13 @@ coop_menu_level 0
 coop_menu_sound false
 coop_menu_random false
 coop_menu_demos false
-coop_player_palette_pants ff 00 00
-coop_player_palette_shirt 7b 00 de
+coop_player_palette_pants 17 18 15
+coop_player_palette_shirt e7 e7 21
 coop_player_palette_gloves ff ff ff
 coop_player_palette_shoes 72 1c 0e
 coop_player_palette_hair 73 06 00
 coop_player_palette_skin fe c1 79
-coop_player_palette_cap 7b 00 de
+coop_player_palette_cap e7 e7 21
 coop_custom_palette_pants 00 00 ff
 coop_custom_palette_shirt ff 00 00
 coop_custom_palette_gloves ff ff ff

@@ -1649,7 +1649,7 @@ void update_mario_inputs(struct MarioState *m) {
     if ((m->action == ACT_END_PEACH_CUTSCENE || m->action == ACT_CREDITS_CUTSCENE) && m->controller->buttonPressed & START_BUTTON) {
         lvl_skip_credits();
     }
-
+    // LOCALSHIZ
     if (m->playerIndex == 0) {
         if (!localIsPaused && (gCameraMovementFlags & CAM_MOVE_C_UP_MODE)) {
             if (m->action & ACT_FLAG_ALLOW_FIRST_PERSON) {
@@ -1658,19 +1658,19 @@ void update_mario_inputs(struct MarioState *m) {
                 gCameraMovementFlags &= ~CAM_MOVE_C_UP_MODE;
             }
         }
-
-        if (!(m->input & (INPUT_NONZERO_ANALOG | INPUT_A_PRESSED))) {
-            m->input |= INPUT_ZERO_MOVEMENT;
-        }
-
-        if (m->marioObj->oInteractStatus
-            & (INT_STATUS_HOOT_GRABBED_BY_MARIO | INT_STATUS_MARIO_UNK1 | INT_STATUS_HIT_BY_SHOCKWAVE)) {
-            m->input |= INPUT_UNKNOWN_10;
-        }
-        if (m->heldObj != NULL) {
-            m->heldObj->heldByPlayerIndex = 0;
-        }
     }
+    if (!(m->input & (INPUT_NONZERO_ANALOG | INPUT_A_PRESSED))) {
+        m->input |= INPUT_ZERO_MOVEMENT;
+    }
+
+    if (m->marioObj->oInteractStatus
+        & (INT_STATUS_HOOT_GRABBED_BY_MARIO | INT_STATUS_MARIO_UNK1 | INT_STATUS_HIT_BY_SHOCKWAVE)) {
+        m->input |= INPUT_UNKNOWN_10;
+    }
+    if (m->heldObj != NULL) {
+        m->heldObj->heldByPlayerIndex = 0;
+    }
+    // }
 
     // This function is located near other unused trampoline functions,
     // perhaps logically grouped here with the timers.

@@ -427,6 +427,7 @@ void init_mario_after_warp(void) {
 
             if (sWarpDest.type == WARP_TYPE_CHANGE_LEVEL || sWarpDest.type == WARP_TYPE_CHANGE_AREA) {
                 gPlayerSpawnInfos[i].areaIndex = sWarpDest.areaIdx;
+                // LOCALSHIZ
                 if (i == 0) { load_mario_area(); }
             }
 
@@ -444,14 +445,18 @@ void init_mario_after_warp(void) {
 
         // remove offset from local mario during warps
         // LOCALSHIZ
-        if (sWarpDest.type == WARP_TYPE_SAME_AREA && marioSpawnType != MARIO_SPAWN_DOOR_WARP) {
-            gMarioState[0].pos[0] = (s16)spawnNode->object->oPosX;
-            gMarioState[0].pos[1] = (s16)spawnNode->object->oPosY;
-            gMarioState[0].pos[2] = (s16)spawnNode->object->oPosZ;
-            if (gMarioState[0].marioObj != NULL) {
-                gMarioState[0].marioObj->oPosX = spawnNode->object->oPosX;
-                gMarioState[0].marioObj->oPosY = spawnNode->object->oPosY;
-                gMarioState[0].marioObj->oPosZ = spawnNode->object->oPosZ;
+        printf("|||||||||||||||||\n");
+        for (s32 i = 0; i < MAX_PLAYERS; i++) {
+            if (sWarpDest.type == WARP_TYPE_SAME_AREA && marioSpawnType != MARIO_SPAWN_DOOR_WARP) {
+                gMarioState[i].pos[0] = (s16)spawnNode->object->oPosX;
+                gMarioState[i].pos[1] = (s16)spawnNode->object->oPosY;
+                gMarioState[i].pos[2] = (s16)spawnNode->object->oPosZ;
+                if (gMarioState[i].marioObj != NULL) {
+                    printf("%d \n",i);
+                    gMarioState[i].marioObj->oPosX = spawnNode->object->oPosX;
+                    gMarioState[i].marioObj->oPosY = spawnNode->object->oPosY;
+                    gMarioState[i].marioObj->oPosZ = spawnNode->object->oPosZ;
+                }
             }
         }
 

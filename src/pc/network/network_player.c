@@ -447,9 +447,18 @@ void network_player_update_course_level(struct NetworkPlayer* np, s16 courseNum,
             // LOCALSHIZ PHASE 2
             for (u32 i = 1; i < MAX_PLAYERS; i++) {
                 struct NetworkPlayer* npi = &gNetworkPlayers[i];
-                if ((!npi->connected) || npi == gNetworkPlayerLocal) { continue; }
-                npi->currPositionValid = false;
+                struct NetworkPlayer* npp = &gNetworkPlayers[0];
+                // if ((!npi->connected) || npi == gNetworkPlayerLocal) { continue; }
+                // npi->currPositionValid = false;
+                // memset(npi, 0, sizeof(struct NetworkPlayer));
+                // npi->connected = false;
+                // npi->clear_id(i);
+                network_player_disconnected(i);
+                network_player_connected(NPT_SERVER, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
+                // network_player_update_course_level(np, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
+                network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
             }
+            
 
         } else {
             for (struct SyncObject* so = sync_object_get_first(); so != NULL; so = sync_object_get_next()) {

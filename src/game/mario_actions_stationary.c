@@ -1117,6 +1117,7 @@ s32 act_first_person(struct MarioState *m) {
         }
         m->actionState = 1;
     } else if (!(m->input & INPUT_FIRST_PERSON) || sp1C || gOverrideFreezeCamera) {
+        // LOCALSHIZ
         if (m->playerIndex == 0) {
             raise_background_noise(2);
             // Go back to the last camera mode

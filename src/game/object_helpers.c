@@ -201,6 +201,7 @@ Gfx *geo_switch_area(s32 callContext, struct GraphNode *node) {
             find_floor(gMarioObject->oPosX, gMarioObject->oPosY, gMarioObject->oPosZ, &sp20);
             if (sp20) {
                 gMarioCurrentRoom = sp20->room;
+                // LOCALSHIZ
                 gMarioStates[0].currentRoom = gMarioCurrentRoom;
                 sp26 = sp20->room - 1;
                 print_debug_top_down_objectinfo("areainfo %d", sp20->room);
@@ -1441,6 +1442,7 @@ void obj_set_model(struct Object* obj, s32 modelID) {
 }
 
 void mario_set_flag(s32 flag) {
+    // LOCALSHIZ
     gMarioStates[0].flags |= flag;
 }
 

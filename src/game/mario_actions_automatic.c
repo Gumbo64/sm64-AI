@@ -730,6 +730,7 @@ s32 act_grabbed(struct MarioState *m) {
     set_mario_animation(m, MARIO_ANIM_BEING_GRABBED);
 
     // check if they should still be grabbed
+    // LOCALSHIZ
     if (m->playerIndex == 0) {
         // check if the object holding me is being held
         u8 heldObjIsHeld = FALSE;
@@ -813,6 +814,7 @@ s32 act_in_cannon(struct MarioState *m) {
                 m->faceAngle[1] = marioObj->oMarioCannonObjectYaw + marioObj->oMarioCannonInputYaw;
 
                 extern struct MarioState gMarioStates[];
+                // LOCALSHIZ
                 if (m->input & INPUT_A_PRESSED && m == &gMarioStates[0]) {
                     m->forwardVel = 100.0f * coss(m->faceAngle[0]);
 

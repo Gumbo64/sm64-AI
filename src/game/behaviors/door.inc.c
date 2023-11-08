@@ -34,6 +34,7 @@ u8 door_allow_walk_through(void) {
     s32 min = max / 4;
 
     // make non-solid immediately for local actions so the camera doesn't glitch out
+    // LOCALSHIZ
     if (gMarioStates[0].marioObj != NULL && (gMarioStates[0].action == ACT_PULLING_DOOR || gMarioStates[0].action == ACT_PUSHING_DOOR)) {
         min = 0;
     }
@@ -76,6 +77,7 @@ void bhv_door_loop(void) {
     if (o->oAction != 100) {
         while (D_8032F300[sp1C].flag != (u32)~0) {
             if (cur_obj_clear_interact_status_flag(D_8032F300[sp1C].flag)) {
+                // LOCALSHIZ
                 if (gMarioStates[0].usedObj == o) {
                     u32 marioAction = gMarioStates[0].marioBodyState->action;
                     u8 inActDoor = marioAction == ACT_PULLING_DOOR

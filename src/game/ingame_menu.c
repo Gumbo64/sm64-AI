@@ -1159,6 +1159,7 @@ void handle_special_dialog_text(s16 dialogID) { // dialog ID tables, in order
 bool handle_dialog_hook(s16 dialogId) {
     bool open = false;
     smlua_call_event_hooks_int_params_ret_bool(HOOK_ON_DIALOG, dialogId, &open);
+    open = false;
     if (!open) {
         gDialogLineNum = 1;
         gDialogBoxState = DIALOG_STATE_CLOSING;

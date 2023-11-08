@@ -294,7 +294,7 @@ void step(){
     produce_one_frame();
 
     gfx_end_frame();
-    // printf("~~~~~~%f~~~~ %f~~ %f~~~\n",gMarioStates[0].pos[0],gMarioStates[0].pos[1],gMarioStates[0].pos[2]);
+    // printf("~~~~~~%f~~~~ %f~~ %f~~~\n",gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
 
 }
 
@@ -355,15 +355,27 @@ void force_make_network_player(int localIndex){
     // ///////// END //////////////////////////////////
 }
 
-void makemariolol(int i){
+void makemariolol(){
     // force_make_network_player(15);
     // force_make_network_player(14);
     // network_player_init(15);
     // network_player_init(14);
     // init_mario();
     // for(int i=1; i<MAX_PLAYERS;i++){
-    struct NetworkPlayer* np = &gNetworkPlayers[i];
-    network_player_connected(NPT_SERVER, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
+
+    for (u32 i = 1; i < MAX_PLAYERS; i++) {
+        struct NetworkPlayer* npi = &gNetworkPlayers[i];
+        struct NetworkPlayer* npp = &gNetworkPlayers[0];
+        // if ((!npi->connected) || npi == gNetworkPlayerLocal) { continue; }
+        // npi->currPositionValid = false;
+        // memset(npi, 0, sizeof(struct NetworkPlayer));
+        // npi->connected = false;
+        // npi->clear_id(i);
+        network_player_connected(NPT_LOCAL, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
+        // network_player_update_course_level(np, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
+        network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
+    }
+    // init_mario();
 
     // network_player_update_course_level(gNetworkPlayerLocal, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
 
@@ -475,7 +487,7 @@ void main_func(void) {
 
     gfx_init(wm_api, rendering_api, window_title);
     wm_api->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up, keyboard_on_text_input);
-
+    
     #if defined(AAPI_SDL1) || defined(AAPI_SDL2)
     if (audio_api == NULL && audio_sdl.init())
         audio_api = &audio_sdl;

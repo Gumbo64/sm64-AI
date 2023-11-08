@@ -340,6 +340,7 @@ s32 act_picking_up_bowser(struct MarioState *m) {
         if (m->heldObj != NULL) {
             queue_rumble_data_mario(m, 5, 80);
             play_character_sound(m, CHAR_SOUND_HRMM);
+            // LOCALSHIZ
             if (m->playerIndex == 0) {
                 network_send_object(m->heldObj);
             } else {
@@ -360,6 +361,7 @@ s32 act_picking_up_bowser(struct MarioState *m) {
 
 s32 act_holding_bowser(struct MarioState *m) {
     if (!m) { return 0; }
+    // LOCALSHIZ
     if (m->playerIndex != 0) {
         if (m->marioBodyState->grabPos != GRAB_POS_BOWSER) {
             m->usedObj = cur_obj_nearest_object_with_behavior(bhvBowser);

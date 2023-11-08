@@ -192,6 +192,7 @@ void check_player_object_collision(void) {
         sp18 = (struct Object *) sp18->header.next;
     }
 
+    // LOCALSHIZ
     extern struct MarioState gMarioStates[];
     for (s32 i = 1; i < MAX_PLAYERS; i++) {
         if (detect_player_hitbox_overlap(&gMarioStates[0], &gMarioStates[i], 1.0f)) {

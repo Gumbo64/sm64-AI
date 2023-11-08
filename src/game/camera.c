@@ -1,7 +1,7 @@
 #include <ultra64.h>
 
 #define INCLUDED_FROM_CAMERA_C
-
+// LOCALSHIZ this whole file
 #include "prevent_bss_reordering.h"
 #include "sm64.h"
 #include "camera.h"

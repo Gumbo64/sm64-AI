@@ -586,6 +586,8 @@ void spawn_objects_from_info(UNUSED s32 unused, struct SpawnInfo *spawnInfo) {
                 object->respawnInfoType = RESPAWN_INFO_TYPE_32;
                 object->respawnInfo = &spawnInfo->behaviorArg;
 
+
+                // weirdshiz
                 // found a player
                 if (spawnInfo->behaviorArg & ((u32)1 << 31) && object->behavior == smlua_override_behavior(bhvMario)) {
                     u16 playerIndex = (spawnInfo->behaviorArg & ~(1 << 31));

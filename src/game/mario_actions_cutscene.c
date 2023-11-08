@@ -1149,6 +1149,7 @@ s32 act_warp_door_spawn(struct MarioState *m) {
             }
         }
     } else if (m->usedObj == NULL || (m->usedObj->oAction == 0 || m->usedObj->oAction == 100)) {
+        // LOCALSHIZ
         if (m->playerIndex == 0) {
             if (gNeverEnteredCastle == TRUE && gCurrLevelNum == LEVEL_CASTLE) {
                 set_mario_action(m, ACT_READING_AUTOMATIC_DIALOG, gBehaviorValues.dialogs.CastleEnterDialog);

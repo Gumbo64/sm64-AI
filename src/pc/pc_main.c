@@ -294,7 +294,7 @@ void step(){
     produce_one_frame();
 
     gfx_end_frame();
-    // printf("~~~~~~%f~~~~ %f~~ %f~~~\n",gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
+    // printf("%d\n", !(gMarioStates[1].input & INPUT_Z_DOWN));
 
 }
 

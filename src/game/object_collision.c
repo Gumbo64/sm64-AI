@@ -192,7 +192,6 @@ void check_player_object_collision(void) {
         sp18 = (struct Object *) sp18->header.next;
     }
 
-    // LOCALSHIZ
     extern struct MarioState gMarioStates[];
     for (s32 i = 1; i < MAX_PLAYERS; i++) {
         if (detect_player_hitbox_overlap(&gMarioStates[0], &gMarioStates[i], 1.0f)) {
@@ -206,6 +205,22 @@ void check_player_object_collision(void) {
             b->numCollidedObjs++;
         }
     }
+    // Tried a version where all the marios can run past each other and move them, but it makes the punching hitboxes work worse so its not worth it
+    // extern struct MarioState gMarioStates[];
+    // for (s32 j = 0; j < MAX_PLAYERS; j++) {
+    //     for (s32 i = 0; i < MAX_PLAYERS; i++) {
+    //         if ( i < j && detect_player_hitbox_overlap(&gMarioStates[j], &gMarioStates[i], 1.0f)) {
+    //             struct Object* a = gMarioStates[j].marioObj;
+    //             struct Object* b = gMarioStates[i].marioObj;
+    //             a->collidedObjs[a->numCollidedObjs] = b;
+    //             b->collidedObjs[b->numCollidedObjs] = a;
+    //             a->collidedObjInteractTypes |= b->oInteractType;
+    //             b->collidedObjInteractTypes |= a->oInteractType;
+    //             a->numCollidedObjs++;
+    //             b->numCollidedObjs++;
+    //         }
+    //     }
+    // }
 }
 
 void check_pushable_object_collision(void) {

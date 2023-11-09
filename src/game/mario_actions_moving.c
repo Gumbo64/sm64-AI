@@ -289,7 +289,9 @@ s32 update_sliding(struct MarioState *m, f32 stopSpeed) {
 
     update_sliding_angle(m, accel, lossFactor);
 
-    if (m->playerIndex == 0 && !mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
+    // LOCALSHIZ
+    // if (m->playerIndex == 0 && !mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
+    if (!mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
         mario_set_forward_vel(m, 0.0f);
         stopped = TRUE;
     }
@@ -1125,7 +1127,7 @@ s32 act_decelerating(struct MarioState *m) {
     if (!m) { return FALSE; }
     s32 val0C;
     s16 slopeClass = mario_get_floor_class(m);
-
+    // sussy
     if (!(m->input & INPUT_FIRST_PERSON)) {
         if (should_begin_sliding(m)) {
             return set_mario_action(m, ACT_BEGIN_SLIDING, 0);
@@ -1387,7 +1389,7 @@ s32 act_burning_ground(struct MarioState *m) {
     if (perform_ground_step(m) == GROUND_STEP_LEFT_GROUND) {
         set_mario_action(m, ACT_BURNING_FALL, 0);
     }
-
+    
     set_mario_anim_with_accel(m, MARIO_ANIM_RUNNING, (s32)(m->forwardVel / 2.0f * 0x10000));
     play_step_sound(m, 9, 45);
 

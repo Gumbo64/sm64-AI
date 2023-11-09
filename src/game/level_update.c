@@ -445,7 +445,7 @@ void init_mario_after_warp(void) {
 
         // remove offset from local mario during warps
         // LOCALSHIZ
-        printf("|||||||||||||||||\n");
+
         for (s32 i = 0; i < MAX_PLAYERS; i++) {
             if (sWarpDest.type == WARP_TYPE_SAME_AREA && marioSpawnType != MARIO_SPAWN_DOOR_WARP) {
                 gMarioState[i].pos[0] = (s16)spawnNode->object->oPosX;

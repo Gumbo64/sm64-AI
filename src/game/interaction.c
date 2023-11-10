@@ -835,6 +835,10 @@ u32 take_damage_from_interact_object(struct MarioState *m) {
     }
 
     m->hurtCounter += 4 * damage;
+    // if( m->hurtCounter != 0 && damage !=0 && m->interactObj->oDamageOrCoinValue!=0){
+    //     printf("%d %d %d\n",m->hurtCounter,damage, m->interactObj->oDamageOrCoinValue);
+    // }
+    
 
     queue_rumble_data_mario(m, 5, 80);
     if (m->playerIndex == 0) { set_camera_shake_from_hit(shake); }
@@ -881,10 +885,11 @@ void reset_mario_pitch(struct MarioState *m) {
 u32 interact_coin(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
 
-    if (m != &gMarioStates[0] || (gDjuiInMainMenu && gCurrLevelNum == LEVEL_TTM)) {
-        // only collect locally
-        return FALSE;
-    }
+    // LOCALSHIZ COIN
+    // if (m != &gMarioStates[0] || (gDjuiInMainMenu && gCurrLevelNum == LEVEL_TTM)) {
+    //     // only collect locally
+    //     return FALSE;
+    // }
 
     m->numCoins += o->oDamageOrCoinValue;
     m->healCounter += 4 * o->oDamageOrCoinValue;
@@ -916,7 +921,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
     if (!m || !o) { return FALSE; }
     // only allow for local player
     // LOCALSHIZ
-    if (m != &gMarioStates[0]) { return FALSE; }
+    // if (m != &gMarioStates[0]) { return FALSE; }
 
     u32 starIndex;
     u32 starGrabAction = ACT_STAR_DANCE_EXIT;
@@ -1530,23 +1535,23 @@ u32 interact_player_pvp(struct MarioState* attacker, struct MarioState* victim) 
         if (attacker->actionState == 0) { return FALSE; }
         victim->bounceSquishTimer = max(victim->bounceSquishTimer, 20);
     }
-
-    if (victim->playerIndex == 0) {
-        victim->interactObj = attacker->marioObj;
-        if (interaction & INT_KICK) {
-            if (victim->action == ACT_FIRST_PERSON) {
-                // without this branch, the player will be stuck in first person
-                raise_background_noise(2);
-                set_camera_mode(victim->area->camera, -1, 1);
-                victim->input &= ~INPUT_FIRST_PERSON;
-            }
-            set_mario_action(victim, ACT_FREEFALL, 0);
+    // LOCALSHIZ
+    // if (victim->playerIndex == 0) {
+    victim->interactObj = attacker->marioObj;
+    if (interaction & INT_KICK) {
+        if (victim->action == ACT_FIRST_PERSON) {
+            // without this branch, the player will be stuck in first person
+            raise_background_noise(2);
+            set_camera_mode(victim->area->camera, -1, 1);
+            victim->input &= ~INPUT_FIRST_PERSON;
         }
-        if (!(victim->flags & MARIO_METAL_CAP)) {
-            attacker->marioObj->oDamageOrCoinValue = determine_player_damage_value(interaction);
-            if (attacker->flags & MARIO_METAL_CAP) { attacker->marioObj->oDamageOrCoinValue *= 2; }
-        }
+        set_mario_action(victim, ACT_FREEFALL, 0);
     }
+    if (!(victim->flags & MARIO_METAL_CAP)) {
+        attacker->marioObj->oDamageOrCoinValue = determine_player_damage_value(interaction);
+        if (attacker->flags & MARIO_METAL_CAP) { attacker->marioObj->oDamageOrCoinValue *= 2; }
+    }
+    // }
 
     victim->invincTimer = max(victim->invincTimer, 3);
     take_damage_and_knock_back(victim, attacker->marioObj);

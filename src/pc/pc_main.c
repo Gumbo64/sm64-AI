@@ -294,7 +294,8 @@ void step(){
     produce_one_frame();
 
     gfx_end_frame();
-    // printf("%d\n", !(gMarioStates[1].input & INPUT_Z_DOWN));
+    // printf("%d\n", gMarioStates[0].health >> 8 );
+    // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
 
 }
 

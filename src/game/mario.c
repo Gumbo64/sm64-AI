@@ -440,6 +440,7 @@ bool mario_can_bubble(struct MarioState* m) {
 }
 
 void mario_set_bubbled(struct MarioState* m) {
+    // LOCALSHIZ
     if (!m) { return; }
     if (m->playerIndex != 0) { return; }
     if (m->action == ACT_BUBBLED) { return; }
@@ -1743,6 +1744,7 @@ void update_mario_health(struct MarioState *m) {
                     // when in snow terrains lose 3 health.
                     // If using the debug level select, do not lose any HP to water.
                     if ((m->pos[1] >= (m->waterLevel - 140)) && !terrainIsSnow) {
+                        // mario heals at the surface of water SHIZ mmk
                         m->health += 0x1A;
                     } else if (!gDebugLevelSelect) {
                         m->health -= (terrainIsSnow ? 3 : 1);

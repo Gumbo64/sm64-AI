@@ -26,7 +26,7 @@ funky.main_func()
 
 # funky.makemariolol()
 
-for i in range(100):
+for i in range(10):
 
     # print("------------------")
     # inputmariolol = MarioInput(10,10,0)

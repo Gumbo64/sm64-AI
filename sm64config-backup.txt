@@ -6,10 +6,10 @@ window_h 1377
 vsync true
 texture_filtering 2
 msaa 0
-master_volume 127
+master_volume 0
 music_volume 0
-sfx_volume 127
-env_volume 127
+sfx_volume 0
+env_volume 0
 key_a 0026 1000 1103 
 key_b 0033 1002 1101 
 key_x 0017 1002 ffff 

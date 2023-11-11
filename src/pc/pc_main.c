@@ -84,6 +84,10 @@ f32 gRenderingDelta = 0;
 
 f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
+// 1 is true, 0 is false
+#define MAX_GAME_SPEED 1
+
+
 #define FRAMERATE 30
 static const f64 sFrameTime = (1.0 / ((double)FRAMERATE));
 static f64 sFrameTargetTime = 0;
@@ -179,17 +183,17 @@ void produce_interpolation_frames_and_delay(void) {
     }
 
     u64 frames = 0;
-    while ((curTime = clock_elapsed_f64()) < sFrameTargetTime) {
+    while ((curTime = clock_elapsed_f64()) < sFrameTargetTime || ( frames == 0 && MAX_GAME_SPEED)) {
         // interpolate and render
         gfx_start_frame();
         f32 delta = MIN((curTime - sFrameTimeStart) / (sFrameTargetTime - sFrameTimeStart), 1);
         gRenderingDelta = delta;
-        if (!gSkipInterpolationTitleScreen && (configFrameLimit > 30 || configUncappedFramerate)) { patch_interpolations(delta); }
+        if ( !MAX_GAME_SPEED && !gSkipInterpolationTitleScreen && (configFrameLimit > 30 || configUncappedFramerate)) { patch_interpolations(delta); }
         send_display_list(gGfxSPTask);
         gfx_end_frame();
 
         // delay
-        if (!configUncappedFramerate) {
+        if (!configUncappedFramerate && !MAX_GAME_SPEED) {
             f64 targetDelta = 1.0 / (f64)configFrameLimit;
             f64 now = clock_elapsed_f64();
             f64 actualDelta = now - curTime;
@@ -209,7 +213,7 @@ void produce_interpolation_frames_and_delay(void) {
     sFrameTargetTime += sFrameTime * gGameSpeed;
     gRenderingInterpolated = false;
 
-    //printf(">>> fpt: %llu, fps: %f :: %f\n", frames, sAvgFps, fps);
+    // printf(">>> fpt: %llu, fps: %f :: %f\n", frames, sAvgFps, fps);
 }
 
 void produce_one_frame(void) {
@@ -295,75 +299,12 @@ void step(){
 
     gfx_end_frame();
     // printf("%d\n", gMarioStates[0].health >> 8 );
+    printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
     // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
 
 }
 
-
-
-void force_make_network_player(int localIndex){
-    int globalIndex = localIndex;
-    gMarioStates[localIndex].marioObj = gMarioObjects[localIndex];
-
-    struct NetworkPlayer *np = &gNetworkPlayers[localIndex];
-    u8 modelIndex = 0;  
-
-
-    ////////////////////// START ///////////////////////////////////////////
-    // clear
-    memset(np, 0, sizeof(struct NetworkPlayer));
-
-    // update fundamentals
-    np->connected = true;
-    np->type = NPT_LOCAL;
-    np->localIndex = localIndex;
-    np->globalIndex = globalIndex;
-    np->ping = 600;
-
-    network_player_set_description(np, NULL, 0, 0, 0, 0);
-
-    // update course/level
-    np->currLevelAreaSeqId = 0;
-    np->currLevelSyncValid = false;
-    np->currAreaSyncValid = false;
-    np->currPositionValid = false;
-
-    // level number 16 is LEVEL_CASTLE_GROUNDS
-    network_player_update_course_level(np, 0, 0, 16, 1);
-
-    // update visuals
-    
-    np->fadeOpacity = 30;
-    np->modelIndex = modelIndex;
-    np->palette = DEFAULT_MARIO_PALETTE;
-    np->overrideModelIndex = modelIndex;
-    np->overridePalette = DEFAULT_MARIO_PALETTE;
-
-    np->paletteIndex           = USE_REAL_PALETTE_VAR;
-    np->overridePaletteIndex   = USE_REAL_PALETTE_VAR;
-    np->overridePaletteIndexLp = USE_REAL_PALETTE_VAR;
-
-    snprintf(np->name, MAX_PLAYER_STRING, "%s", "BOTPLAYER");
-    network_player_update_model(localIndex);
-
-    // clear networking fields
-    np->lastReceived = clock_elapsed();
-    np->lastSent = clock_elapsed();
-    np->onRxSeqId = 0;
-
-    
-
-    // ///////// END //////////////////////////////////
-}
-
 void makemariolol(){
-    // force_make_network_player(15);
-    // force_make_network_player(14);
-    // network_player_init(15);
-    // network_player_init(14);
-    // init_mario();
-    // for(int i=1; i<MAX_PLAYERS;i++){
-
     for (u32 i = 1; i < MAX_PLAYERS; i++) {
         struct NetworkPlayer* npi = &gNetworkPlayers[i];
         struct NetworkPlayer* npp = &gNetworkPlayers[0];
@@ -376,33 +317,6 @@ void makemariolol(){
         // network_player_update_course_level(np, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
         network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
     }
-    // init_mario();
-
-    // network_player_update_course_level(gNetworkPlayerLocal, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
-
-
-    // MARIOS LIVE ON ANOTHER PLANE OF COLLISION IF U CHANGE THIS
-    // network_player_update_course_level(np, 0, 0, LEVEL_CASTLE_GROUNDS, 1);
-    // network_player_update_course_level(np, 1, 1, LEVEL_BOB, 1);
-    // }
-
-    // init_mario();
-
-
-    // network_player_connected(NPT_LOCAL, 2, 0, &DEFAULT_MARIO_PALETTE, "Botfam2");
-    // network_player_connected(NPT_CLIENT, 3, 0, &DEFAULT_MARIO_PALETTE, "Botfam3");
-    // network_player_init(1);
-    // init_level();
-   
-    
-    // gCurrentObject = &(gMarioStates[0]->MarioObj);
-    // copy_mario_state_to_object(&(gMarioStates[1]->MarioObj));
-    // copy_mario_state_to_object(&(gMarioStates[2]->MarioObj));
-    // gMarioStates[1] = gMarioStates[0];
-    // // memcpy(&gMarioStates[1], &gMarioStates[0], sizeof(struct MarioState));
-    // write_packet_data()
-    // network_receive_player()
-    // printf("%d \n",gMarioStates[1].marioObj. == NULL);
     
 }
 void main_func(void) {
@@ -536,26 +450,7 @@ void main_func(void) {
         gfx_precache_textures();
     }
 #endif
-
-//     while (true) {
-//         debug_context_reset();
-//         CTX_BEGIN(CTX_FRAME);
-//         wm_api->main_loop(step);
-// #ifdef DISCORD_SDK
-//         discord_update();
-// #endif
-// #ifdef DEBUG
-//         fflush(stdout);
-//         fflush(stderr);
-// #endif
-//         CTX_END(CTX_FRAME);
-//     }
-
-//     bassh_deinit();
 }
-
-
-
 
 int main(int argc, char *argv[]) {
     parse_cli_opts(argc, argv);

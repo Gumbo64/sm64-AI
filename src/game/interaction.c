@@ -2263,7 +2263,11 @@ u32 check_npc_talk(struct MarioState *m, struct Object *o) {
 u32 interact_text(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
     u32 interact = FALSE;
-
+    // bots are banned from reading SHIZ
+    if (m->playerIndex != 0){
+        return interact;
+    }
+    
     if (o->oInteractionSubtype & INT_SUBTYPE_SIGN) {
         interact = check_read_sign(m, o);
     } else if (o->oInteractionSubtype & INT_SUBTYPE_NPC) {

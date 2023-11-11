@@ -2135,9 +2135,9 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         }
 
         // drop held object if someone else is holding it
-        if (gMarioState->playerIndex == 0 && gMarioState->heldObj != NULL) {
+        if (gMarioState->heldObj != NULL) {
             u8 inCutscene = ((gMarioState->action & ACT_GROUP_MASK) != ACT_GROUP_CUTSCENE);
-            if (!inCutscene && gMarioState->heldObj->heldByPlayerIndex != 0) {
+            if (!inCutscene && gMarioState->heldObj->heldByPlayerIndex != gMarioState->playerIndex) {
                 drop_and_set_mario_action(gMarioState, ACT_IDLE, 0);
             }
         }
@@ -2214,7 +2214,7 @@ s32 execute_mario_action(UNUSED struct Object *o) {
 #endif
         }
 
-        if (gServerSettings.enableCheats && gCheats.bljAnywhere && gMarioState->playerIndex == 0 && gMarioState->action == ACT_LONG_JUMP && gMarioState->forwardVel < -15 && gMarioState->input & INPUT_Z_DOWN && gMarioState->pos[1] - gMarioState->floorHeight < 90) {
+        if (gServerSettings.enableCheats && gCheats.bljAnywhere && gMarioState->action == ACT_LONG_JUMP && gMarioState->forwardVel < -15 && gMarioState->input & INPUT_Z_DOWN && gMarioState->pos[1] - gMarioState->floorHeight < 90) {
             gMarioState->vel[1] = -30;
         }
 

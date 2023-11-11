@@ -139,7 +139,7 @@ local function update()
 end
 
 local function on_death(m)
-    if m.playerIndex ~= 0 then return end
+    -- if m.playerIndex ~= 0 then return end
     local s = gPlayerSyncTable[m.playerIndex]
     
     s.seeking = true

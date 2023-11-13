@@ -40,6 +40,7 @@
 #include "gfx_cc.h"
 #include "gfx_rendering_api.h"
 
+
 #define TEX_CACHE_STEP 512
 
 struct ShaderProgram {
@@ -722,6 +723,19 @@ static void gfx_opengl_finish_render(void) {
 static void gfx_opengl_shutdown(void) {
 }
 
+static unsigned char* gfx_opengl_get_frame_pixels(int width, int height){
+
+    // get_dimensions
+    // glfwGetFramebufferSize(window, &width, &height);
+
+    
+    unsigned char* pixels = (unsigned char*)malloc(3 * width * height);
+
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    return pixels;
+} 
+
 struct GfxRenderingAPI gfx_opengl_api = {
     gfx_opengl_z_is_from_0_to_1,
     gfx_opengl_unload_shader,
@@ -745,7 +759,8 @@ struct GfxRenderingAPI gfx_opengl_api = {
     gfx_opengl_start_frame,
     gfx_opengl_end_frame,
     gfx_opengl_finish_render,
-    gfx_opengl_shutdown
+    gfx_opengl_shutdown,
+    gfx_opengl_get_frame_pixels
 };
 
 #endif // RAPI_GL

@@ -2215,3 +2215,16 @@ void OPTIMIZE_O3 djui_gfx_run_dl(Gfx* cmd) {
             break;
     }
 }
+
+
+struct gfxPixels gfx_get_pixels(void) {
+    struct gfxPixels tempp = {
+        .width = gfx_current_dimensions.width,
+        .height = gfx_current_dimensions.height,
+        .pixels = gfx_rapi->get_frame_pixels(rdp.viewport.width, rdp.viewport.height),
+    };
+    return tempp ;
+}
+
+
+

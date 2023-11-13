@@ -66,6 +66,7 @@
 
 
 #include "game/object_list_processor.h"
+#include "buffers/framebuffers.h"
 
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
@@ -84,9 +85,11 @@ f32 gRenderingDelta = 0;
 
 f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
+struct gfxPixels gPixelPointer;
+
 // 1 is true, 0 is false
 #define MAX_GAME_SPEED 1
-
+#define TRUE_HEADLESS 0
 
 #define FRAMERATE 30
 static const f64 sFrameTime = (1.0 / ((double)FRAMERATE));
@@ -221,15 +224,16 @@ void produce_one_frame(void) {
     network_update();
     CTX_END(CTX_NETWORK);
 
-    CTX_BEGIN(CTX_INTERP);
-    patch_interpolations_before();
-    CTX_END(CTX_INTERP);
+    if (!TRUE_HEADLESS){
+        CTX_BEGIN(CTX_INTERP);
+        patch_interpolations_before();
+        CTX_END(CTX_INTERP);
 
-    const f32 master_mod = (f32)configMasterVolume / 127.0f;
-    set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * master_mod);
-    set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
-    set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
-
+        const f32 master_mod = (f32)configMasterVolume / 127.0f;
+        set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * master_mod);
+        set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
+        set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
+    }
     CTX_BEGIN(CTX_GAME_LOOP);
     game_loop_one_iteration();
     CTX_END(CTX_GAME_LOOP);
@@ -238,28 +242,30 @@ void produce_one_frame(void) {
     smlua_update();
     CTX_END(CTX_SMLUA);
 
-    thread6_rumble_loop(NULL);
+    if (!TRUE_HEADLESS){
+        thread6_rumble_loop(NULL);
 
-    CTX_BEGIN(CTX_AUDIO);
-    int samples_left = audio_api->buffered();
-    u32 num_audio_samples = samples_left < audio_api->get_desired_buffered() ? SAMPLES_HIGH : SAMPLES_LOW;
-    //printf("Audio samples: %d %u\n", samples_left, num_audio_samples);
-    s16 audio_buffer[SAMPLES_HIGH * 2 * 2];
-    for (s32 i = 0; i < 2; i++) {
-        /*if (audio_cnt-- == 0) {
-            audio_cnt = 2;
+        CTX_BEGIN(CTX_AUDIO);
+        int samples_left = audio_api->buffered();
+        u32 num_audio_samples = samples_left < audio_api->get_desired_buffered() ? SAMPLES_HIGH : SAMPLES_LOW;
+        //printf("Audio samples: %d %u\n", samples_left, num_audio_samples);
+        s16 audio_buffer[SAMPLES_HIGH * 2 * 2];
+        for (s32 i = 0; i < 2; i++) {
+            /*if (audio_cnt-- == 0) {
+                audio_cnt = 2;
+            }
+            u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
+            create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
         }
-        u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
-        create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
+        //printf("Audio samples before submitting: %d\n", audio_api->buffered());
+
+        audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
+        CTX_END(CTX_AUDIO);
+
+        CTX_BEGIN(CTX_RENDER);
+        produce_interpolation_frames_and_delay();
+        CTX_END(CTX_RENDER);
     }
-    //printf("Audio samples before submitting: %d\n", audio_api->buffered());
-
-    audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
-    CTX_END(CTX_AUDIO);
-
-    CTX_BEGIN(CTX_RENDER);
-    produce_interpolation_frames_and_delay();
-    CTX_END(CTX_RENDER);
 }
 
 void audio_shutdown(void) {
@@ -296,13 +302,32 @@ void inthand(UNUSED int signum) {
 void step(){
     gfx_start_frame();
     produce_one_frame();
-
     gfx_end_frame();
     // printf("%d\n", gMarioStates[0].health >> 8 );
     printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
     // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
 
 }
+
+
+struct gfxPixels step_pixels(){
+    gfx_start_frame();
+    produce_one_frame();
+    printf("------------fasf--------\n");
+    printf("%d\n", gPixelPointer.pixels != NULL);
+    printf("--------fasf------------\n");
+    // if (gPixelPointer.pixels != NULL){
+    free(gPixelPointer.pixels);
+    // }
+    gPixelPointer = gfx_get_pixels();
+
+    gfx_end_frame();
+
+    return gPixelPointer;
+}
+
+
+
 
 void makemariolol(){
     for (u32 i = 1; i < MAX_PLAYERS; i++) {
@@ -457,6 +482,7 @@ int main(int argc, char *argv[]) {
     main_func();
     return 0;
 }
+
 
 
 

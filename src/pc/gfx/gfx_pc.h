@@ -29,6 +29,15 @@ void gfx_precache_textures(void);
 void gfx_shutdown(void);
 void gfx_pc_precomp_shader(uint32_t rgb1, uint32_t alpha1, uint32_t rgb2, uint32_t alpha2, uint32_t flags);
 
+struct gfxPixels {
+    unsigned char* pixels;
+
+    int width;
+    int height;
+};
+
+struct gfxPixels gfx_get_pixels(void);
+
 #ifdef __cplusplus
 }
 #endif

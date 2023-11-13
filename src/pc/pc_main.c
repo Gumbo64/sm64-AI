@@ -313,12 +313,10 @@ void step(){
 struct gfxPixels step_pixels(){
     gfx_start_frame();
     produce_one_frame();
-    printf("------------fasf--------\n");
-    printf("%d\n", gPixelPointer.pixels != NULL);
-    printf("--------fasf------------\n");
-    // if (gPixelPointer.pixels != NULL){
+
+
     free(gPixelPointer.pixels);
-    // }
+
     gPixelPointer = gfx_get_pixels();
 
     gfx_end_frame();

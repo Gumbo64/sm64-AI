@@ -31,7 +31,7 @@ while True:
     steps += 1
 
     pixelStruct = funky.step_pixels()
-    if steps % 50 == 0:
+    if steps % 1 == 0:
         
         
         # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]

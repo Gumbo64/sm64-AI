@@ -1143,6 +1143,8 @@ struct LevelCommand *level_script_execute(struct LevelCommand *cmd) {
     }
     CTX_END(CTX_LEVEL_SCRIPT);
 
+
+    // WHY IS RENDERING IN THE LEVEL SCRIPT AAAAAAAAAAAAAAAAAAAAAAAAAAA
     profiler_log_thread5_time(LEVEL_SCRIPT_EXECUTE);
     init_render_image();
     render_game();

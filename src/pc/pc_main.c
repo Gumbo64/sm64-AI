@@ -86,10 +86,10 @@ f32 gRenderingDelta = 0;
 f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
 struct gfxPixels gPixelPointer;
+bool gRenderingToggle = FALSE;
 
 // 1 is true, 0 is false
 #define MAX_GAME_SPEED 1
-#define TRUE_HEADLESS 0
 
 #define FRAMERATE 30
 static const f64 sFrameTime = (1.0 / ((double)FRAMERATE));
@@ -187,6 +187,7 @@ void produce_interpolation_frames_and_delay(void) {
 
     u64 frames = 0;
     while ((curTime = clock_elapsed_f64()) < sFrameTargetTime || ( frames == 0 && MAX_GAME_SPEED)) {
+
         // interpolate and render
         gfx_start_frame();
         f32 delta = MIN((curTime - sFrameTimeStart) / (sFrameTargetTime - sFrameTimeStart), 1);
@@ -224,7 +225,7 @@ void produce_one_frame(void) {
     network_update();
     CTX_END(CTX_NETWORK);
 
-    if (!TRUE_HEADLESS){
+    if (gRenderingToggle){
         CTX_BEGIN(CTX_INTERP);
         patch_interpolations_before();
         CTX_END(CTX_INTERP);
@@ -242,7 +243,8 @@ void produce_one_frame(void) {
     smlua_update();
     CTX_END(CTX_SMLUA);
 
-    if (!TRUE_HEADLESS){
+    if (gRenderingToggle){
+        
         thread6_rumble_loop(NULL);
 
         CTX_BEGIN(CTX_AUDIO);
@@ -299,7 +301,18 @@ void inthand(UNUSED int signum) {
 }
 
 // bool doRun = false;
+void step_headless(){
+    gRenderingToggle = FALSE;
+    gfx_start_frame();
+    produce_one_frame();
+    gfx_end_frame();
+    // printf("%d\n", gMarioStates[0].health >> 8 );
+    printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
+    // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
+
+}
 void step(){
+    gRenderingToggle = TRUE;
     gfx_start_frame();
     produce_one_frame();
     gfx_end_frame();
@@ -309,21 +322,35 @@ void step(){
 
 }
 
+void force_make_frame() {
+    CTX_BEGIN(CTX_INTERP);
+    patch_interpolations_before();
+    CTX_END(CTX_INTERP);
+    CTX_BEGIN(CTX_RENDER);
+    produce_interpolation_frames_and_delay();
+    CTX_END(CTX_RENDER);
+
+}
 
 struct gfxPixels step_pixels(){
+    gRenderingToggle = TRUE;
     gfx_start_frame();
     produce_one_frame();
 
 
+    
+    // change the camera to player 10
+    // gMarioStates[0].camera = gMarioStates[10].camera;
+
+    // force_make_frame();
+    
     free(gPixelPointer.pixels);
-
     gPixelPointer = gfx_get_pixels();
-
     gfx_end_frame();
+
 
     return gPixelPointer;
 }
-
 
 
 

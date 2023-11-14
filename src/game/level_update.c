@@ -452,7 +452,7 @@ void init_mario_after_warp(void) {
                 gMarioState[i].pos[1] = (s16)spawnNode->object->oPosY;
                 gMarioState[i].pos[2] = (s16)spawnNode->object->oPosZ;
                 if (gMarioState[i].marioObj != NULL) {
-                    printf("%d \n",i);
+                    // printf("%d \n",i);
                     gMarioState[i].marioObj->oPosX = spawnNode->object->oPosX;
                     gMarioState[i].marioObj->oPosY = spawnNode->object->oPosY;
                     gMarioState[i].marioObj->oPosZ = spawnNode->object->oPosZ;

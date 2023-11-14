@@ -2247,6 +2247,7 @@ s16 update_default_camera(struct Camera *c) {
         vec3f_set_dist_and_angle(sMarioCamState->pos, cPos, xzDist, tempPitch, tempYaw);
         sAvoidYawVel = (sAvoidYawVel - yaw) / 0x100;
     } else {
+        // LOCALSHIZ
         if (gMarioStates[0].forwardVel == 0.f) {
             if (sStatusFlags & CAM_FLAG_COLLIDED_WITH_WALL) {
                 if ((yawGoal - yaw) / 0x100 >= 0) {
@@ -2780,6 +2781,7 @@ s32 mode_c_up_camera(struct Camera *c) {
     if (!c) { return 0; }
     UNUSED u8 unused[12];
 
+    // localshiz
     if (gMarioStates[0].action != ACT_FIRST_PERSON) {
         raise_background_noise(2);
         set_camera_mode(c, -1, 1);
@@ -3131,6 +3133,7 @@ static void update_romhack_camera_override(struct Camera *c) {
  */
 void update_camera(struct Camera *c) {
     if (!c) { return; }
+
     UNUSED u8 unused[24];
 
     gCamera = c;

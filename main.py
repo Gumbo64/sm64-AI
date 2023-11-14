@@ -30,24 +30,24 @@ while True:
         funky.makemariolol()
     steps += 1
 
-    pixelStruct = funky.step_pixels()
-    if steps % 1 == 0:
-        
-        
+    
+    if steps % 10 == 0:
+        pixelStruct = funky.step_pixels()
         # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]
         # img = Image.fromarray(np.asarray(pixelslist).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
 
         # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]
         img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
 
-
         img = img.transpose(Image.FLIP_TOP_BOTTOM)
         img = img.resize((256,144))
 
         img.save("test.png")
-    # img.show()
-    # time.sleep(1)
+    else:
+        funky.step_headless()
+
+# print function 
 
 
-    # print(f"{list(a.faceAngle)}")
+
 

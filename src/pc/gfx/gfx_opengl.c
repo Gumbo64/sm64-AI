@@ -723,16 +723,10 @@ static void gfx_opengl_finish_render(void) {
 static void gfx_opengl_shutdown(void) {
 }
 
+// MADE FOR AI 
 static unsigned char* gfx_opengl_get_frame_pixels(int width, int height){
-
-    // get_dimensions
-    // glfwGetFramebufferSize(window, &width, &height);
-
-    
     unsigned char* pixels = (unsigned char*)malloc(3 * width * height);
-
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
     return pixels;
 } 
 

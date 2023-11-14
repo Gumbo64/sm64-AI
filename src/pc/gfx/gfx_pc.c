@@ -1658,6 +1658,7 @@ static inline void *seg_addr(uintptr_t w1) {
 #define C0(pos, width) ((cmd->words.w0 >> (pos)) & ((1U << width) - 1))
 #define C1(pos, width) ((cmd->words.w1 >> (pos)) & ((1U << width) - 1))
 
+
 static void OPTIMIZE_O3 gfx_run_dl(Gfx* cmd) {
     for (;;) {
         uint32_t opcode = cmd->words.w0 >> 24;
@@ -1904,7 +1905,7 @@ struct GfxRenderingAPI *gfx_get_current_rendering_api(void) {
 
 void gfx_start_frame(void) {
     gfx_wapi->handle_events();
-    // gfx_wapi->get_dimensions(&gfx_current_dimensions.width, &gfx_current_dimensions.height);
+    gfx_wapi->get_dimensions(&gfx_current_dimensions.width, &gfx_current_dimensions.height);
     // HARDCODING RESOLUTION
     gfx_current_dimensions.width = 256;
     gfx_current_dimensions.height = 144;
@@ -2228,6 +2229,7 @@ struct gfxPixels gfx_get_pixels(void) {
     };
     return tempp ;
 }
+
 
 
 

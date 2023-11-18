@@ -12132,7 +12132,9 @@ static u8 rom_hack_cam_can_see_mario(Vec3f desiredPos) {
 
     s16 degreeMult = sRomHackZoom ? 7 : 5;
 
+    // Horizontal component
     for (s16 yawOffset = -1; yawOffset <= 1; yawOffset++) {
+        // vertical component
         for (s16 pitchOffset = -1; pitchOffset <= 1; pitchOffset++) {
             if (abs(yawOffset) == 1 && abs(pitchOffset) == 1) { continue; }
             Vec3f target;

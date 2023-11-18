@@ -1245,6 +1245,8 @@ s32 play_mode_normal(void) {
 
     if (gCurrentArea != NULL) {
         update_camera(gCurrentArea->camera);
+        
+
     }
 
     initiate_painting_warp(-1);

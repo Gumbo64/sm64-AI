@@ -31,18 +31,24 @@ while True:
     steps += 1
 
     
-    if steps % 10 == 0:
+    if steps % 1 == 0:
         pixelStruct = funky.step_pixels()
         # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]
         # img = Image.fromarray(np.asarray(pixelslist).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
 
         # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]
-        img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
+        # img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
 
+        # img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        # img = img.resize((256,144))
+
+
+        img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height)))
+        img = img.transpose(Image.TRANSPOSE)
         img = img.transpose(Image.FLIP_TOP_BOTTOM)
-        img = img.resize((256,144))
-
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
         img.save("test.png")
+        # time.sleep(4)
     else:
         funky.step_headless()
 

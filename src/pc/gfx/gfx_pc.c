@@ -1923,6 +1923,7 @@ void gfx_run(Gfx *commands) {
 
     if (!gfx_wapi->start_frame()) {
         dropped_frame = true;
+        printf("DROOOOOOOOP\n");
         return;
     }
     dropped_frame = false;
@@ -2221,13 +2222,12 @@ void OPTIMIZE_O3 djui_gfx_run_dl(Gfx* cmd) {
 }
 
 
-struct gfxPixels gfx_get_pixels(void) {
-    struct gfxPixels tempp = {
-        .width = gfx_current_dimensions.width,
-        .height = gfx_current_dimensions.height,
-        .pixels = gfx_rapi->get_frame_pixels(rdp.viewport.width, rdp.viewport.height),
-    };
-    return tempp ;
+struct gfxPixels* gfx_get_pixels(void) {
+    struct gfxPixels* tempp = malloc(sizeof(struct gfxPixels));
+    tempp->width = gfx_current_dimensions.width;
+    tempp->height = gfx_current_dimensions.height;
+    tempp->pixels = gfx_rapi->get_frame_pixels(rdp.viewport.width, rdp.viewport.height);
+    return tempp;
 }
 
 

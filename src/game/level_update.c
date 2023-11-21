@@ -1245,8 +1245,6 @@ s32 play_mode_normal(void) {
 
     if (gCurrentArea != NULL) {
         update_camera(gCurrentArea->camera);
-        
-
     }
 
     initiate_painting_warp(-1);
@@ -1291,6 +1289,7 @@ s32 play_mode_paused(void) {
         bool allowExit = true;
         smlua_call_event_hooks_bool_param_ret_bool(HOOK_ON_PAUSE_EXIT, false, &allowExit);
         if (allowExit) {
+            // localshiz
             level_trigger_warp(&gMarioStates[0], WARP_OP_EXIT);
             set_play_mode(PLAY_MODE_NORMAL);
         }

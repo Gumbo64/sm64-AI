@@ -683,6 +683,8 @@ extern struct PlayerCameraState gPlayerCameraState[MAX_PLAYERS];
 extern struct LakituState gLakituState;
 extern s16 gCameraMovementFlags;
 extern s32 gObjCutsceneDone;
+extern bool gNoCamUpdate;
+
 extern struct Camera *gCamera;
 #endif
 

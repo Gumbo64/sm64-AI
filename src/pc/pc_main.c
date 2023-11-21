@@ -70,6 +70,7 @@
 
 #include "engine/math_util.h"
 #include "engine/surface_collision.h"
+#include "game/camera.h"
 
 
 OSMesg D_80339BEC;
@@ -89,8 +90,9 @@ f32 gRenderingDelta = 0;
 
 f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
-struct gfxPixels gPixelPointers[MAX_PLAYERS] = { NULL };
+struct gfxPixels* gPixelPointers[MAX_PLAYERS] = { NULL };
 bool gRenderingToggle = FALSE;
+
 
 // 1 is true, 0 is false
 #define MAX_GAME_SPEED 1
@@ -305,6 +307,51 @@ void inthand(UNUSED int signum) {
     game_exit();
 }
 
+void cam_focus_player(int playerIndex){
+    gNoCamUpdate = TRUE;
+    Vec3f campos;
+    vec3f_copy(campos, gMarioStates[playerIndex].pos);
+    Vec3f offset = {700, 600, 0};
+    vec3f_add(campos,offset);
+
+    vec3f_copy(gLakituState.pos, campos);
+    vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
+
+    vec3f_copy(gLakituState.curPos, campos);
+    vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
+
+    gFOVState.fov = 90;
+
+}
+
+
+void force_make_frame(int playerIndex) {
+
+    config_gfx_pool();
+    cam_focus_player(playerIndex);
+
+    gfx_start_frame();
+
+    init_render_image();
+    render_game();
+    end_master_display_list();
+    alloc_display_list(0);
+
+    CTX_BEGIN(CTX_INTERP);
+    patch_interpolations_before();
+    CTX_END(CTX_INTERP);
+    CTX_BEGIN(CTX_RENDER);
+    produce_interpolation_frames_and_delay();
+
+    display_and_vsync();
+
+    CTX_END(CTX_RENDER);
+    gfx_end_frame();
+    // display_and_vsync();
+
+
+}
+
 // bool doRun = false;
 void step_headless(){
     gRenderingToggle = FALSE;
@@ -317,155 +364,130 @@ void step_headless(){
 
 }
 void step(){
-    gRenderingToggle = TRUE;
-    gfx_start_frame();
+    gRenderingToggle = FALSE;
+
     produce_one_frame();
-    gfx_end_frame();
-    // printf("%d\n", gMarioStates[0].health >> 8 );
+
+    force_make_frame(1);
+
+
+
     printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
     // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
 
 }
 
-void force_make_frame() {
-    CTX_BEGIN(CTX_INTERP);
-    patch_interpolations_before();
-    CTX_END(CTX_INTERP);
-    CTX_BEGIN(CTX_RENDER);
-    produce_interpolation_frames_and_delay();
-    CTX_END(CTX_RENDER);
 
-}
-
-// do collision checking
-    // struct Surface *surf = NULL;
-
-    // f32 mDist;
-    // s16 mPitch;
-    // s16 mYaw;
-    // vec3f_get_dist_and_angle(desiredPos, gMarioStates[0].pos, &mDist, &mPitch, &mYaw);
-
-    // s16 degreeMult = sRomHackZoom ? 7 : 5;
-
-    // // Horizontal component
-    // for (s16 yawOffset = -1; yawOffset <= 1; yawOffset++) {
-    //     // vertical component
-    //     for (s16 pitchOffset = -1; pitchOffset <= 1; pitchOffset++) {
-    //         if (abs(yawOffset) == 1 && abs(pitchOffset) == 1) { continue; }
-    //         Vec3f target;
-    //         vec3f_set_dist_and_angle(desiredPos,
-    //             target,
-    //             mDist,
-    //             mPitch + DEGREES(pitchOffset) * degreeMult,
-    //             mYaw + DEGREES(yawOffset) * degreeMult);
-
-    //         target[1] += 75;
-
-    //         Vec3f camdir;
-    //         camdir[0] = target[0] - desiredPos[0];
-    //         camdir[1] = target[1] - desiredPos[1];
-    //         camdir[2] = target[2] - desiredPos[2];
-
-    //         Vec3f hitpos;
-    //         find_surface_on_ray(desiredPos, camdir, &surf, hitpos);
-    //         if (surf == NULL) {
-    //             return true;
-    //         }
-    //     }
-    // }
 
 #define RAY_LEFTRIGHT_RANGE 60
-#define RAY_UPDOWN_RANGE 60
+#define RAY_UPDOWN_RANGE 30
 #define LOG_MODE 1
 
-// this function is almost the same as the rom_hack_cam_can_see_mario() function, look at that
-struct gfxPixels get_raycast_pixels(int playerIndex){
-    // malloc is not needed at the moment but its consistent with the opengl pixels
-    // i'll probably allow it dynamically changing later from python or whatever anyways
+// // this function is almost the same as the rom_hack_cam_can_see_mario() function, look at that
+// struct gfxPixels get_raycast_pixels(int playerIndex){
+//     // malloc is not needed at the moment but its consistent with the opengl pixels
+//     // i'll probably allow it dynamically changing later from python or whatever anyways
     
-    unsigned char* raycast_pixels = (unsigned char*)malloc((RAY_LEFTRIGHT_RANGE * 2 + 1) * (RAY_UPDOWN_RANGE * 2 + 1));
+//     unsigned char* raycast_pixels = (unsigned char*)malloc((RAY_LEFTRIGHT_RANGE * 2 + 1) * (RAY_UPDOWN_RANGE * 2 + 1));
 
-    struct Surface *surf = NULL;
+//     struct Surface *surf = NULL;
     
-    // raycast starts from marios position
-    Vec3f startpos;
-    vec3f_copy(startpos, gMarioStates[playerIndex].pos);
-    startpos[1] += 300;
+//     // raycast starts from marios position
+//     Vec3f startpos;
+//     vec3f_copy(startpos, gMarioStates[playerIndex].pos);
+//     startpos[1] += 300;
 
-    f32 maxDist = 10000;
-    f32 minDist = 300;
-    // maxDist = 1000;
-    // mario's yaw and pitch to start from
-    s16 mPitch = gMarioStates[playerIndex].faceAngle[0];
-    s16 mYaw = gMarioStates[playerIndex].faceAngle[1];
+//     f32 maxDist = 15000;
+//     f32 minDist = 400;
+//     // maxDist = 1000;
+//     // mario's yaw and pitch to start from
+//     s16 mPitch = gMarioStates[playerIndex].faceAngle[0];
+//     s16 mYaw = gMarioStates[playerIndex].faceAngle[1];
 
-    int pixels_index = 0;
+//     int pixels_index = 0;
 
-    int degreeMult = 2;
+//     int degreeMult = 2;
     
-    for (s16 yawOffset = -RAY_LEFTRIGHT_RANGE; yawOffset <= RAY_LEFTRIGHT_RANGE; yawOffset++) {
-        for (s16 pitchOffset = -RAY_UPDOWN_RANGE; pitchOffset <= RAY_UPDOWN_RANGE; pitchOffset++) {
-            Vec3f target;
-            vec3f_set_dist_and_angle(startpos,
-                target,
-                maxDist,
-                mPitch + DEGREES(pitchOffset) * degreeMult,
-                mYaw + DEGREES(yawOffset) * degreeMult);
+//     for (s16 yawOffset = -RAY_LEFTRIGHT_RANGE; yawOffset <= RAY_LEFTRIGHT_RANGE; yawOffset++) {
+//         for (s16 pitchOffset = -RAY_UPDOWN_RANGE; pitchOffset <= RAY_UPDOWN_RANGE; pitchOffset++) {
+//             Vec3f target;
+//             vec3f_set_dist_and_angle(startpos,
+//                 target,
+//                 maxDist,
+//                 mPitch + DEGREES(pitchOffset) * degreeMult,
+//                 mYaw + DEGREES(yawOffset) * degreeMult);
 
-            Vec3f raydir;
-            raydir[0] = target[0] - startpos[0];
-            raydir[1] = target[1] - startpos[1];
-            raydir[2] = target[2] - startpos[2];
-
-            Vec3f hitpos;
-            find_surface_on_ray(startpos, raydir, &surf, hitpos);
+//             Vec3f raydir;
+//             vec3f_dif(raydir, target, startpos);
+//             Vec3f hitpos;
+//             find_surface_on_ray(startpos, raydir, &surf, hitpos);
             
-            // get distance that the raycast travelled
-            Vec3f dir;
-            if (surf != NULL) {  
-                // if there is a collision 
-                vec3f_dif(dir, hitpos, startpos);
-                f32 d;
-                if (LOG_MODE){
-                    d = (log(vec3f_length(dir)) - log(minDist))/(log(maxDist) - log(minDist)) * 255;
-                    d = MAX(0,d);
-                    raycast_pixels[pixels_index] = (unsigned char)(d);
-                }else{
-                    d = vec3f_length(dir)/maxDist * 255;
-                    d = MAX(0,d);
-                    raycast_pixels[pixels_index] = (unsigned char)(d);
-                }
-            }else{
-                // no collision
-                raycast_pixels[pixels_index] = 255;
-            }
+//             // get distance that the raycast travelled
+//             Vec3f dir;
+//             if (surf != NULL) {  
+//                 // if there is a collision 
+//                 vec3f_dif(dir, hitpos, startpos);
+//                 f32 d;
+//                 if (LOG_MODE){
+//                     d = (log(vec3f_length(dir)) - log(minDist))/(log(maxDist) - log(minDist)) * 255;
+//                     d = MAX(0,d);
+//                     raycast_pixels[pixels_index] = (unsigned char)(d);
+//                 }else{
+//                     d = (vec3f_length(dir)-minDist)/(maxDist-minDist) * 255;
+//                     d = MAX(0,d);
+//                     raycast_pixels[pixels_index] = (unsigned char)(d);
+//                 }
+//             }else{
+//                 // no collision
+//                 raycast_pixels[pixels_index] = 255;
+//             }
 
-            pixels_index++;
+//             pixels_index++;
+//         }
+//     }
+
+//     struct gfxPixels tempp = {
+//         .width = RAY_LEFTRIGHT_RANGE * 2 + 1,
+//         .height = RAY_UPDOWN_RANGE * 2 + 1,
+//         .pixels = raycast_pixels,
+//     };
+//     return tempp;
+// }
+
+
+// struct gfxPixels step_ray_pixels(){
+//     gRenderingToggle = TRUE;
+//     gfx_start_frame();
+//     produce_one_frame();
+    
+//     // for(int i=0; i<MAX_PLAYERS; i++){
+//     for(int i=0; i<MAX_PLAYERS; i++){
+//         if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
+//         gPixelPointers[i] = get_raycast_pixels(i);
+//     }
+
+//     gfx_end_frame();
+
+
+//     return gPixelPointers[1];
+// }
+
+struct gfxPixels** step_pixels(){
+    gRenderingToggle = FALSE;
+    
+    produce_one_frame();
+    for(int i=0; i<MAX_PLAYERS; i++){
+
+        if (gPixelPointers[i]){
+            if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
+            free(gPixelPointers[i]);
         }
+
+        force_make_frame(i);
+        gPixelPointers[i] = gfx_get_pixels();
     }
 
-    struct gfxPixels tempp = {
-        .width = RAY_LEFTRIGHT_RANGE * 2 + 1,
-        .height = RAY_UPDOWN_RANGE * 2 + 1,
-        .pixels = raycast_pixels,
-    };
-    return tempp;
-}
-
-
-struct gfxPixels step_pixels(){
-    gRenderingToggle = TRUE;
-    gfx_start_frame();
-    produce_one_frame();
-    
-    // force_make_frame();
-    free(gPixelPointers[0].pixels);
-    // gPixelPointers[0] = gfx_get_pixels();
-    gPixelPointers[0] = get_raycast_pixels(0);
-    gfx_end_frame();    
-
-
-    return gPixelPointers[0];
+    return gPixelPointers;
 }
 
 

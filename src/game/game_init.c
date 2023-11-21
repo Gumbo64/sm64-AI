@@ -283,7 +283,7 @@ void rendering_init(void) {
     send_display_list(&gGfxPool->spTask);
 
     frameBufferIndex++;
-    gGlobalTimer++;
+    // gGlobalTimer++;
 }
 
 void config_gfx_pool(void) {
@@ -304,8 +304,9 @@ void display_and_vsync(void) {
         gGoddardVblankCallback = NULL;
     }
 
-    // we only produce interpolated frames now
-    //send_display_list(&gGfxPool->spTask);
+    // we only produce interpolated frames now SIKE
+    
+    send_display_list(&gGfxPool->spTask);
 
     profiler_log_thread5_time(AFTER_DISPLAY_LISTS);
     osRecvMesg(&gGameVblankQueue, &D_80339BEC, OS_MESG_BLOCK);
@@ -318,7 +319,7 @@ void display_and_vsync(void) {
     if (++frameBufferIndex == 3) {
         frameBufferIndex = 0;
     }
-    gGlobalTimer++;
+    // gGlobalTimer++;
 }
 
 // this function records distinct inputs over a 255-frame interval to RAM locations and was likely
@@ -593,7 +594,7 @@ void thread5_game_loop(UNUSED void *arg) {
     play_music(SEQ_PLAYER_SFX, SEQUENCE_ARGS(0, SEQ_SOUND_PLAYER), 0);
     set_sound_mode(save_file_get_sound_mode());
 
-    gGlobalTimer++;
+    // gGlobalTimer++;
 }
 
 void game_loop_one_iteration(void) {
@@ -607,7 +608,7 @@ void game_loop_one_iteration(void) {
     }
 
     audio_game_loop_tick();
-    config_gfx_pool();
+    // config_gfx_pool();
     read_controller_inputs();
 
     for (s32 i = 1; i < MAX_PLAYERS; i++) {
@@ -615,12 +616,12 @@ void game_loop_one_iteration(void) {
         // if we're receiving inputs, update the controller struct
         // with the new button info.
         controller->controllerData = gControllers[0].controllerData;
-        // if (random_u16() % 40 == 0){
-        //     controller->controllerData->button = random_u16();
-        // }
-        // else{
-        //     controller->controllerData->button = 0;
-        // }
+        if (random_u16() % 40 == 0){
+            controller->controllerData->button = random_u16();
+        }
+        else{
+            controller->controllerData->button = 0;
+        }
         
         if (controller->controllerData != NULL) {
 
@@ -628,10 +629,10 @@ void game_loop_one_iteration(void) {
             // controller->rawStickX = gControllers[0].controllerData->stick_x;
             // controller->rawStickY = gControllers[0].controllerData->stick_y;
 
-            controller->rawStickX = gControllers[0].controllerData->stick_x + random_sign() * random_u16() % 100;
-            controller->rawStickY = gControllers[0].controllerData->stick_y + random_sign() * random_u16() % 100;
-            // controller->rawStickX = random_sign() * random_u16() % 100;
-            // controller->rawStickY = random_sign() * random_u16() % 100;
+            // controller->rawStickX = gControllers[0].controllerData->stick_x + random_sign() * random_u16() % 100;
+            // controller->rawStickY = gControllers[0].controllerData->stick_y + random_sign() * random_u16() % 100;
+            controller->rawStickX = random_sign() * random_u16() % 100;
+            controller->rawStickY = random_sign() * random_u16() % 100;
 
             controller->extStickX = gControllers[0].controllerData->ext_stick_x;
             controller->extStickY = gControllers[0].controllerData->ext_stick_y;
@@ -650,7 +651,7 @@ void game_loop_one_iteration(void) {
 
 
     levelCommandAddr = level_script_execute(levelCommandAddr);
-    display_and_vsync();
+    // display_and_vsync();
 
     // when debug info is enabled, print the "BUF %d" information.
     if (gShowDebugText) {
@@ -661,4 +662,5 @@ void game_loop_one_iteration(void) {
 
     // custom coop hooks
     rng_position_update();
+    gGlobalTimer++;
 }

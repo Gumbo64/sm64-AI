@@ -43,6 +43,8 @@ u8 gOverrideFreezeCamera = FALSE;
 enum RomhackCameraOverride gOverrideRomhackCamera = RCO_ALL;
 u8 gRomhackCameraAllowCentering = TRUE;
 
+bool gNoCamUpdate = FALSE;
+
 /**
  * @file camera.c
  * Implements the camera system, including C-button input, camera modes, camera triggers, and cutscenes.
@@ -3132,7 +3134,8 @@ static void update_romhack_camera_override(struct Camera *c) {
  * Gets controller input, checks for cutscenes, handles mode changes, and moves the camera
  */
 void update_camera(struct Camera *c) {
-    if (!c) { return; }
+    if (!c || gNoCamUpdate) { return; }
+    
 
     UNUSED u8 unused[24];
 
@@ -3316,6 +3319,7 @@ void update_camera(struct Camera *c) {
                     break;
 
                 case CAMERA_MODE_ROM_HACK:
+                    printf("ROM HACK CAMERA\n");
                     mode_rom_hack_camera(c);
                     break;
 

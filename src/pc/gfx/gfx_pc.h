@@ -36,7 +36,7 @@ struct gfxPixels {
     int height;
 };
 
-struct gfxPixels gfx_get_pixels(void);
+struct gfxPixels* gfx_get_pixels(void);
 
 #ifdef __cplusplus
 }

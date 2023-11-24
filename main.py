@@ -6,6 +6,22 @@ from PIL import Image
 import numpy as np
 import copy
 import random
+import pygame
+
+MAX_PLAYERS = 4
+# Initialize Pygame
+pygame.init()
+
+# Set the width and height of the window
+window_width = 256 * MAX_PLAYERS
+window_height = 144
+
+# Create the window
+window = pygame.display.set_mode((window_width, window_height))
+
+# Set the window title
+pygame.display.set_caption("mario command panel")
+
 funky = ctypes.CDLL(r"./build/us_pc/sm64.dll")
 
 
@@ -23,40 +39,44 @@ funky.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gfxPixels))
 # funky.step_ray_pixels.restype = gfxPixels
 
 
-ray_mode = False
+
 
 steps = 0
-while True:
+running = True
+while running:
     if steps == 10:
         funky.makemariolol()
     steps += 1
-    # funky.step()
-    # print(steps)
 
-    if ray_mode:
-        pixelStruct = funky.step_ray_pixels()
-    else:
-        pixelStruct = funky.step_pixels()[random.randint(0,3)].contents
+    start_time = time.time()
 
-    if steps % 10 == 0:
-        # pixelslist = [ pixelStruct.pixels[i] for i in range(pixelStruct.width * pixelStruct.height * 3) ]
-        for i in range(4):
-            if ray_mode:
-                img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height).astype(np.uint8).reshape(( pixelStruct.height,pixelStruct.width)))
-                
-                img = img.transpose(Image.TRANSPOSE)
-                img = img.transpose(Image.ROTATE_180)
-            else:
-                img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
-                img = img.transpose(Image.FLIP_TOP_BOTTOM)
-                img = img.resize((256,144))
+    pixelPointers = funky.step_pixels()
 
-        
-        img.save("test.png")
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"{execution_time}")
+
+    if steps % 1  == 0:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        window.fill((0, 0, 0))
 
 
+        for i in range(MAX_PLAYERS):
+            pixelStruct = pixelPointers[i].contents
 
-# print function 
+            img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+            # img = img.resize((256,144))
+
+            
+                # img.save(f"test{i}.png")
+            surface = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
+            window.blit(surface, (i * pixelStruct.height, 0))
+
+        pygame.display.flip()
 
 
 

@@ -37,6 +37,7 @@ struct gfxPixels {
 };
 
 struct gfxPixels* gfx_get_pixels(void);
+void FLOOOOSH(void);
 
 #ifdef __cplusplus
 }

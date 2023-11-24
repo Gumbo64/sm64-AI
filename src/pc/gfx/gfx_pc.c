@@ -2229,7 +2229,9 @@ struct gfxPixels* gfx_get_pixels(void) {
     tempp->pixels = gfx_rapi->get_frame_pixels(rdp.viewport.width, rdp.viewport.height);
     return tempp;
 }
-
+void FLOOOOSH(void) {
+    gfx_flush();
+}
 
 
 

@@ -71,6 +71,8 @@
 #include "engine/math_util.h"
 #include "engine/surface_collision.h"
 #include "game/camera.h"
+#include "game/level_update.h"
+#include "pc/gfx/gfx_pc.h"
 
 
 OSMesg D_80339BEC;
@@ -321,33 +323,59 @@ void cam_focus_player(int playerIndex){
     vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
 
     gFOVState.fov = 90;
-
+    gHudDisplay.lives = playerIndex;
 }
 
 
 void force_make_frame(int playerIndex) {
 
-    config_gfx_pool();
     cam_focus_player(playerIndex);
-
-    gfx_start_frame();
-
-    init_render_image();
-    render_game();
-    end_master_display_list();
-    alloc_display_list(0);
 
     CTX_BEGIN(CTX_INTERP);
     patch_interpolations_before();
     CTX_END(CTX_INTERP);
-    CTX_BEGIN(CTX_RENDER);
-    produce_interpolation_frames_and_delay();
 
+    // before level script
+    config_gfx_pool();
+        
+    // level script
+    init_render_image();
+    render_game();
+    end_master_display_list();
+    alloc_display_list(0);
+    // after level script
     display_and_vsync();
 
+    // out of game loop
+    CTX_BEGIN(CTX_RENDER);
+    produce_interpolation_frames_and_delay();
     CTX_END(CTX_RENDER);
-    gfx_end_frame();
-    // display_and_vsync();
+
+
+}
+void force_make_frame_support(int playerIndex) {
+
+    cam_focus_player(playerIndex);
+
+    CTX_BEGIN(CTX_INTERP);
+    patch_interpolations_before();
+    CTX_END(CTX_INTERP);
+
+    // before level script
+    config_gfx_pool();
+        
+    // level script
+    init_render_image();
+    render_game();
+    end_master_display_list();
+    alloc_display_list(0);
+    // after level script
+    display_and_vsync();
+
+    // out of game loop
+    CTX_BEGIN(CTX_RENDER);
+    produce_interpolation_frames_and_delay();
+    CTX_END(CTX_RENDER);
 
 
 }
@@ -474,16 +502,26 @@ void step(){
 
 struct gfxPixels** step_pixels(){
     gRenderingToggle = FALSE;
-    
-    produce_one_frame();
-    for(int i=0; i<MAX_PLAYERS; i++){
 
+    produce_one_frame();
+
+    for(int i = 0; i<MAX_PLAYERS; i++){
         if (gPixelPointers[i]){
             if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
             free(gPixelPointers[i]);
         }
 
+        // works magically if you do it thrice
+        // force_make_frame(0);
+        // force_make_frame(0);
+
+        // force_make_frame_support(0);
+        // force_make_frame_support(0);
+        // FLOOOOSH();
         force_make_frame(i);
+        force_make_frame(i);
+        force_make_frame(i);
+
         gPixelPointers[i] = gfx_get_pixels();
     }
 

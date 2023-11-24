@@ -304,9 +304,9 @@ void display_and_vsync(void) {
         gGoddardVblankCallback = NULL;
     }
 
-    // we only produce interpolated frames now SIKE
+    // we only produce interpolated frames now
     
-    send_display_list(&gGfxPool->spTask);
+    // send_display_list(&gGfxPool->spTask);
 
     profiler_log_thread5_time(AFTER_DISPLAY_LISTS);
     osRecvMesg(&gGameVblankQueue, &D_80339BEC, OS_MESG_BLOCK);

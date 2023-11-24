@@ -13,8 +13,10 @@ MAX_PLAYERS = 4
 pygame.init()
 
 # Set the width and height of the window
-window_width = 256 * MAX_PLAYERS
-window_height = 144
+N_SCREENS_WIDTH = 5
+
+window_width = 256 * N_SCREENS_WIDTH
+window_height = 144 * MAX_PLAYERS // N_SCREENS_WIDTH + 1
 
 # Create the window
 window = pygame.display.set_mode((window_width, window_height))
@@ -56,27 +58,27 @@ while running:
     execution_time = end_time - start_time
     print(f"{execution_time}")
 
-    if steps % 1  == 0:
+    # if steps % 1  == 0:
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-        window.fill((0, 0, 0))
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    window.fill((0, 0, 0))
 
 
-        for i in range(MAX_PLAYERS):
-            pixelStruct = pixelPointers[i].contents
+    for i in range(MAX_PLAYERS):
+        pixelStruct = pixelPointers[i].contents
 
-            img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
-            img = img.transpose(Image.FLIP_TOP_BOTTOM)
-            # img = img.resize((256,144))
+        img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
+        img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        # img = img.resize((256,144))
 
-            
-                # img.save(f"test{i}.png")
-            surface = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
-            window.blit(surface, (i * pixelStruct.height, 0))
+        
+            # img.save(f"test{i}.png")
+        surface = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
+        window.blit(surface, ((i % N_SCREENS_WIDTH) * pixelStruct.height, (i // 5) * pixelStruct.width))
 
-        pygame.display.flip()
+    pygame.display.flip()
 
 
 

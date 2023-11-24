@@ -73,7 +73,7 @@
 #include "game/camera.h"
 #include "game/level_update.h"
 #include "pc/gfx/gfx_pc.h"
-
+#include <sys/time.h>
 
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
@@ -188,62 +188,61 @@ void produce_interpolation_frames_and_delay(void) {
     gRenderingInterpolated = true;
 
     // sanity check target time to deal with hangs and such
-    f64 curTime = clock_elapsed_f64();
-    if (fabs(sFrameTargetTime - curTime) > 1) {
-        sFrameTargetTime = curTime - 0.01f;
-    }
+    // f64 curTime = clock_elapsed_f64();
+    // if (fabs(sFrameTargetTime - curTime) > 1) {
+    //     sFrameTargetTime = curTime - 0.01f;
+    // }
 
-    u64 frames = 0;
-    while ((curTime = clock_elapsed_f64()) < sFrameTargetTime || ( frames == 0 && MAX_GAME_SPEED)) {
+    // u64 frames = 0;
+    // while ((curTime = clock_elapsed_f64()) < sFrameTargetTime || ( frames == 0 && MAX_GAME_SPEED)) {
 
-        // interpolate and render
-        gfx_start_frame();
-        // f32 delta = MIN((curTime - sFrameTimeStart) / (sFrameTargetTime - sFrameTimeStart), 1);
-        f32 delta = 1;
-        gRenderingDelta = delta;
-        if ( !MAX_GAME_SPEED && !gSkipInterpolationTitleScreen && (configFrameLimit > 30 || configUncappedFramerate)) { patch_interpolations(delta); }
-        send_display_list(gGfxSPTask);
-        gfx_end_frame();
+    // interpolate and render
+    gfx_start_frame();
+    // f32 delta = MIN((curTime - sFrameTimeStart) / (sFrameTargetTime - sFrameTimeStart), 1);
+    f32 delta = 0;
+    gRenderingDelta = delta;
+    if ( !MAX_GAME_SPEED && !gSkipInterpolationTitleScreen && (configFrameLimit > 30 || configUncappedFramerate)) { patch_interpolations(delta); }
+    send_display_list(gGfxSPTask);
+    gfx_end_frame();
 
-        // delay
-        if (!configUncappedFramerate && !MAX_GAME_SPEED) {
-            f64 targetDelta = 1.0 / (f64)configFrameLimit;
-            f64 now = clock_elapsed_f64();
-            f64 actualDelta = now - curTime;
-            if (actualDelta < targetDelta) {
-                f64 delay = ((targetDelta - actualDelta) * 1000.0);
-                wm_api->delay((u32)delay);
-            }
-        }
+    // // delay
+    // if (!configUncappedFramerate && !MAX_GAME_SPEED) {
+    //     f64 targetDelta = 1.0 / (f64)configFrameLimit;
+    //     f64 now = clock_elapsed_f64();
+    //     f64 actualDelta = now - curTime;
+    //     if (actualDelta < targetDelta) {
+    //         f64 delay = ((targetDelta - actualDelta) * 1000.0);
+    //         wm_api->delay((u32)delay);
+    //     }
+    // }
 
-        frames++;
-    }
+    // frames++;
 
-    f32 fps = frames / (clock_elapsed_f64() - sFrameTimeStart);
-    sAvgFps = sAvgFps * 0.6 + fps * 0.4;
-    sAvgFrames = sAvgFrames * 0.9 + frames * 0.1;
-    sFrameTimeStart = sFrameTargetTime;
-    sFrameTargetTime += sFrameTime * gGameSpeed;
+    // f32 fps = frames / (clock_elapsed_f64() - sFrameTimeStart);
+    // sAvgFps = sAvgFps * 0.6 + fps * 0.4;
+    // sAvgFrames = sAvgFrames * 0.9 + frames * 0.1;
+    // sFrameTimeStart = sFrameTargetTime;
+    // sFrameTargetTime += sFrameTime * gGameSpeed;
     gRenderingInterpolated = false;
 
     // printf(">>> fpt: %llu, fps: %f :: %f\n", frames, sAvgFps, fps);
 }
 
 void produce_one_frame(void) {
-    CTX_BEGIN(CTX_NETWORK);
-    network_update();
-    CTX_END(CTX_NETWORK);
+    // CTX_BEGIN(CTX_NETWORK);
+    // network_update();
+    // CTX_END(CTX_NETWORK);
 
-    if (gRenderingToggle){
-        CTX_BEGIN(CTX_INTERP);
-        patch_interpolations_before();
-        CTX_END(CTX_INTERP);
+    // if (gRenderingToggle){
+    //     CTX_BEGIN(CTX_INTERP);
+    //     patch_interpolations_before();
+    //     CTX_END(CTX_INTERP);
 
-        const f32 master_mod = (f32)configMasterVolume / 127.0f;
-        set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * master_mod);
-        set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
-        set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
-    }
+    //     const f32 master_mod = (f32)configMasterVolume / 127.0f;
+    //     set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * master_mod);
+    //     set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
+    //     set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
+    // }
     CTX_BEGIN(CTX_GAME_LOOP);
     game_loop_one_iteration();
     CTX_END(CTX_GAME_LOOP);
@@ -252,31 +251,31 @@ void produce_one_frame(void) {
     smlua_update();
     CTX_END(CTX_SMLUA);
 
-    if (gRenderingToggle){
+    // if (gRenderingToggle){
         
-        thread6_rumble_loop(NULL);
+    //     thread6_rumble_loop(NULL);
 
-        CTX_BEGIN(CTX_AUDIO);
-        int samples_left = audio_api->buffered();
-        u32 num_audio_samples = samples_left < audio_api->get_desired_buffered() ? SAMPLES_HIGH : SAMPLES_LOW;
-        //printf("Audio samples: %d %u\n", samples_left, num_audio_samples);
-        s16 audio_buffer[SAMPLES_HIGH * 2 * 2];
-        for (s32 i = 0; i < 2; i++) {
-            /*if (audio_cnt-- == 0) {
-                audio_cnt = 2;
-            }
-            u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
-            create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
-        }
-        //printf("Audio samples before submitting: %d\n", audio_api->buffered());
+    //     CTX_BEGIN(CTX_AUDIO);
+    //     int samples_left = audio_api->buffered();
+    //     u32 num_audio_samples = samples_left < audio_api->get_desired_buffered() ? SAMPLES_HIGH : SAMPLES_LOW;
+    //     //printf("Audio samples: %d %u\n", samples_left, num_audio_samples);
+    //     s16 audio_buffer[SAMPLES_HIGH * 2 * 2];
+    //     for (s32 i = 0; i < 2; i++) {
+    //         /*if (audio_cnt-- == 0) {
+    //             audio_cnt = 2;
+    //         }
+    //         u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
+    //         create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
+    //     }
+    //     //printf("Audio samples before submitting: %d\n", audio_api->buffered());
 
-        audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
-        CTX_END(CTX_AUDIO);
+    //     audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
+    //     CTX_END(CTX_AUDIO);
 
-        CTX_BEGIN(CTX_RENDER);
-        produce_interpolation_frames_and_delay();
-        CTX_END(CTX_RENDER);
-    }
+    //     CTX_BEGIN(CTX_RENDER);
+    //     produce_interpolation_frames_and_delay();
+    //     CTX_END(CTX_RENDER);
+    // }
 }
 
 void audio_shutdown(void) {
@@ -313,16 +312,16 @@ void cam_focus_player(int playerIndex){
     gNoCamUpdate = TRUE;
     Vec3f campos;
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
-    Vec3f offset = {700, 600, 0};
-    vec3f_add(campos,offset);
 
+    vec3f_set_dist_and_angle(campos, campos, 500, gMarioStates[playerIndex].faceAngle[0] + DEGREES(180), gMarioStates[playerIndex].faceAngle[1]);
+    campos[1] += 300;
     vec3f_copy(gLakituState.pos, campos);
     vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
 
-    vec3f_copy(gLakituState.curPos, campos);
-    vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
-
-    gFOVState.fov = 90;
+    // vec3f_copy(gLakituState.curPos, campos);
+    // vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
+    
+    gFOVState.fov = 60;
     gHudDisplay.lives = playerIndex;
 }
 
@@ -354,30 +353,49 @@ void force_make_frame(int playerIndex) {
 
 }
 void force_make_frame_support(int playerIndex) {
+    struct timeval startTime,time1,time2,time3,time4,time5,time6;
 
+    gettimeofday(&startTime, NULL);
     cam_focus_player(playerIndex);
+    gettimeofday(&time1, NULL);
 
     CTX_BEGIN(CTX_INTERP);
     patch_interpolations_before();
     CTX_END(CTX_INTERP);
+    gettimeofday(&time2, NULL);
 
     // before level script
     config_gfx_pool();
-        
+    gettimeofday(&time3, NULL);
+
     // level script
+    // 0.000120
     init_render_image();
     render_game();
     end_master_display_list();
     alloc_display_list(0);
+    gettimeofday(&time4, NULL);
+
     // after level script
     display_and_vsync();
+    gettimeofday(&time5, NULL);
 
     // out of game loop
+    // 0.000380
     CTX_BEGIN(CTX_RENDER);
     produce_interpolation_frames_and_delay();
     CTX_END(CTX_RENDER);
+    gettimeofday(&time6, NULL);
 
 
+
+    double sec1 = (double)(time1.tv_usec - startTime.tv_usec) / 1000000 + (double)(time1.tv_sec - startTime.tv_sec);
+    double sec2 = (double)(time2.tv_usec - time1.tv_usec) / 1000000 + (double)(time2.tv_sec - time1.tv_sec);
+    double sec3 = (double)(time3.tv_usec - time2.tv_usec) / 1000000 + (double)(time3.tv_sec - time2.tv_sec);
+    double sec4 = (double)(time4.tv_usec - time3.tv_usec) / 1000000 + (double)(time4.tv_sec - time3.tv_sec);
+    double sec5 = (double)(time5.tv_usec - time4.tv_usec) / 1000000 + (double)(time5.tv_sec - time4.tv_sec);
+    double sec6 = (double)(time6.tv_usec - time5.tv_usec) / 1000000 + (double)(time6.tv_sec - time5.tv_sec);
+    printf("time: %f %f %f %f %f %f\n", sec1, sec2, sec3, sec4, sec5, sec6);
 }
 
 // bool doRun = false;
@@ -501,25 +519,18 @@ void step(){
 // }
 
 struct gfxPixels** step_pixels(){
-    gRenderingToggle = FALSE;
-
+    // gRenderingToggle = FALSE;
     produce_one_frame();
 
+
+    // player 0's image gets overwritten for whatever reason if you don't have this
+    force_make_frame(MAX_PLAYERS-1);
+    force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
         if (gPixelPointers[i]){
             if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
             free(gPixelPointers[i]);
         }
-
-        // works magically if you do it thrice
-        // force_make_frame(0);
-        // force_make_frame(0);
-
-        // force_make_frame_support(0);
-        // force_make_frame_support(0);
-        // FLOOOOSH();
-        force_make_frame(i);
-        force_make_frame(i);
         force_make_frame(i);
 
         gPixelPointers[i] = gfx_get_pixels();

@@ -1501,14 +1501,19 @@ void update_mario_joystick_inputs(struct MarioState *m) {
     if ((sCurrPlayMode == PLAY_MODE_PAUSED)) { return; }
 
     if (m->intendedMag > 0.0f) {
-#ifndef BETTERCAMERA
-        m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
-#else
-        if (gLakituState.mode != CAMERA_MODE_NEWCAM)
-            m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
-        else
-            m->intendedYaw = atan2s(-controller->stickY, controller->stickX)-newcam_yaw+0x4000;
-#endif
+// #ifndef BETTERCAMERA
+//         m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
+// #else
+//         if (gLakituState.mode != CAMERA_MODE_NEWCAM)
+//             m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
+//         else
+//             m->intendedYaw = atan2s(-controller->stickY, controller->stickX)-newcam_yaw+0x4000;
+// #endif
+
+        // AISHIZ
+        // for AI, make stick relative to mario's face angle instead of camera jank
+        m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->faceAngle[1] + DEGREES(180);
+
         m->input |= INPUT_NONZERO_ANALOG;
     } else {
         m->intendedYaw = m->faceAngle[1];

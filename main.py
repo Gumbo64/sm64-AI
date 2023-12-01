@@ -34,10 +34,18 @@ class gfxPixels(ctypes.Structure):
         ("width",ctypes.c_int ), 
     ]
 
+class inputStruct(ctypes.Structure):
+    _fields_ = [
+        ("stickX",ctypes.c_short), 
+        ("stickY",ctypes.c_short ), 
+        ("buttonInput",ctypes.c_bool * 3), # goes A,B,Z
+    ]
+
 funky.main_func()
 
-
 funky.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gfxPixels))
+funky.step_pixels.argtypes = [inputStruct * MAX_PLAYERS]
+
 # funky.step_ray_pixels.restype = gfxPixels
 
 
@@ -51,12 +59,21 @@ while running:
     steps += 1
 
     start_time = time.time()
+    
 
-    pixelPointers = funky.step_pixels()
+    inputstructs = (inputStruct * MAX_PLAYERS)()
+    for i in range(MAX_PLAYERS):
+        inputstructs[i].stickX = random.randint(-64, 64)
+        inputstructs[i].stickY = random.randint(-64, 64)
+        inputstructs[i].buttonInput = (ctypes.c_bool * 3)(*[random.choices([True, False],[39/40,1/40]) for _ in range(3)])
+        
+    # print(inputstructs[1].stickX, inputstructs[1].stickY, inputstructs[1].buttonInput[0], inputstructs[1].buttonInput[1], inputstructs[1].buttonInput[2])
+
+    pixelPointers = funky.step_pixels(inputstructs)
 
     end_time = time.time()
     execution_time = end_time - start_time
-    print(f"{execution_time}")
+    # print(f"{execution_time}")
 
     # if steps % 1  == 0:
 
@@ -74,7 +91,7 @@ while running:
         # img = img.resize((256,144))
 
         
-            # img.save(f"test{i}.png")
+        img.save(f"test{i}.png")
         surface = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
         window.blit(surface, ((i % N_SCREENS_WIDTH) * pixelStruct.height, (i // 5) * pixelStruct.width))
 

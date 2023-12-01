@@ -518,12 +518,52 @@ void step(){
 //     return gPixelPointers[1];
 // }
 
-struct gfxPixels** step_pixels(){
-    // gRenderingToggle = FALSE;
+struct inputStruct {
+    s16 stickX;
+    s16 stickY;
+    bool buttonInput[3];
+};
+
+void update_controllers(struct inputStruct* inputs){
+    for (s32 i = 1; i < MAX_PLAYERS; i++) {
+        struct Controller *controller = &gControllers[i];
+        struct inputStruct input = inputs[i];
+
+        controller->controllerData = gControllers[0].controllerData;
+
+        controller->rawStickX = input.stickX;
+        controller->rawStickY = input.stickY;
+        controller->controllerData->button |= input.buttonInput[0] * A_BUTTON;
+        controller->controllerData->button |= input.buttonInput[1] * B_BUTTON;
+        controller->controllerData->button |= input.buttonInput[2] * Z_TRIG;
+
+        if ( controller->rawStickX != 0 && controller->rawStickY != 0){
+            controller->controllerData->button |= INPUT_NONZERO_ANALOG;
+        }
+        
+        controller->extStickX = gControllers[0].controllerData->ext_stick_x;
+        controller->extStickY = gControllers[0].controllerData->ext_stick_y;
+
+        controller->buttonPressed = controller->controllerData->button
+                        & (controller->controllerData->button ^ controller->buttonDown);
+
+        controller->buttonDown = controller->controllerData->button;
+        
+        adjust_analog_stick(controller);
+    }
+}
+
+
+struct gfxPixels** step_pixels(struct inputStruct* inputs){
+
+    update_controllers(inputs);
+
     produce_one_frame();
 
 
     // player 0's image gets overwritten for whatever reason if you don't have this
+    force_make_frame(MAX_PLAYERS-1);
+    force_make_frame(MAX_PLAYERS-1);
     force_make_frame(MAX_PLAYERS-1);
     force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){

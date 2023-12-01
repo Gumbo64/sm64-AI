@@ -564,8 +564,6 @@ struct gfxPixels** step_pixels(struct inputStruct* inputs){
     // player 0's image gets overwritten for whatever reason if you don't have this
     force_make_frame(MAX_PLAYERS-1);
     force_make_frame(MAX_PLAYERS-1);
-    force_make_frame(MAX_PLAYERS-1);
-    force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
         if (gPixelPointers[i]){
             if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);

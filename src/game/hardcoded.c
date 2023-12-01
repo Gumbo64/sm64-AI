@@ -113,7 +113,10 @@ struct LevelValues gDefaultLevelValues = {
     .floorLowerLimitMisc            = FLOOR_LOWER_LIMIT_MISC,
     .floorLowerLimitShadow          = FLOOR_LOWER_LIMIT_SHADOW,
     .pauseExitAnywhere              = 1,
-    .disableActs                    = false,
+
+    // AISHIZ
+    // .disableActs                    = false,
+    .disableActs                    = true,
     .wingCapLookUpReq               = 10,
 };
 

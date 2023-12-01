@@ -29,6 +29,7 @@
 #endif
 #include "hud.h"
 
+
 // FIXME: I'm not sure all of these variables belong in this file, but I don't
 // know of a good way to split them
 
@@ -596,8 +597,13 @@ void thread5_game_loop(UNUSED void *arg) {
 
     // gGlobalTimer++;
 }
+void reset_script(){
+    levelCommandAddr = segmented_to_virtual(level_script_entry);
+}
+
 
 void game_loop_one_iteration(void) {
+
     profiler_log_thread5_time(THREAD5_START);
 
     // if any controllers are plugged in, start read the data for when
@@ -606,7 +612,7 @@ void game_loop_one_iteration(void) {
         //block_until_rumble_pak_free();
         osContStartReadData(&gSIEventMesgQueue);
     }
-
+    
     audio_game_loop_tick();
     // config_gfx_pool();
     read_controller_inputs();

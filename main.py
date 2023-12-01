@@ -42,6 +42,7 @@ class inputStruct(ctypes.Structure):
     ]
 
 funky.main_func()
+funky.makemariolol()
 
 funky.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gfxPixels))
 funky.step_pixels.argtypes = [inputStruct * MAX_PLAYERS]
@@ -54,10 +55,7 @@ imgs = list(range(MAX_PLAYERS))
 steps = 0
 running = True
 while running:
-    if steps == 10:
-        funky.makemariolol()
     steps += 1
-
     start_time = time.time()
     
 

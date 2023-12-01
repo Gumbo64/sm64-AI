@@ -243,6 +243,7 @@ void produce_one_frame(void) {
     //     set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
     //     set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
     // }
+
     CTX_BEGIN(CTX_GAME_LOOP);
     game_loop_one_iteration();
     CTX_END(CTX_GAME_LOOP);
@@ -540,9 +541,14 @@ void update_controllers(struct inputStruct* inputs){
     }
 }
 
+void reset(void){
+    // init_level();
+    // init_level();
+    reset_script();
+}
 
 struct gfxPixels** step_pixels(struct inputStruct* inputs){
-    
+
     update_controllers(inputs);
 
     produce_one_frame();
@@ -554,7 +560,6 @@ struct gfxPixels** step_pixels(struct inputStruct* inputs){
     // force_make_frame(MAX_PLAYERS-1);
     // force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
-
         force_make_frame(i);
 
         if (gPixelPointers[i]){
@@ -562,9 +567,6 @@ struct gfxPixels** step_pixels(struct inputStruct* inputs){
             free(gPixelPointers[i]);
         }
         gPixelPointers[i] = gfx_get_pixels();
-
-
-        
     }
 
     return gPixelPointers;

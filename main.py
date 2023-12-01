@@ -49,7 +49,7 @@ funky.step_pixels.argtypes = [inputStruct * MAX_PLAYERS]
 # funky.step_ray_pixels.restype = gfxPixels
 
 
-
+imgs = list(range(MAX_PLAYERS))
 
 steps = 0
 running = True
@@ -86,13 +86,13 @@ while running:
     for i in range(MAX_PLAYERS):
         pixelStruct = pixelPointers[i].contents
 
-        img = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
-        img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        imgs[i] = Image.fromarray(np.fromiter(pixelStruct.pixels,dtype=int,count=pixelStruct.width * pixelStruct.height * 3).astype(np.uint8).reshape(( pixelStruct.width,pixelStruct.height, 3)))
+        imgs[i] = imgs[i].transpose(Image.FLIP_TOP_BOTTOM)
         # img = img.resize((256,144))
 
         
-        img.save(f"test{i}.png")
-        surface = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
+        imgs[i].save(f"test{i}.png")
+        surface = pygame.image.fromstring(imgs[i].tobytes(), imgs[i].size, imgs[i].mode)
         window.blit(surface, ((i % N_SCREENS_WIDTH) * pixelStruct.height, (i // 5) * pixelStruct.width))
 
     pygame.display.flip()

@@ -611,51 +611,6 @@ void game_loop_one_iteration(void) {
     // config_gfx_pool();
     read_controller_inputs();
 
-    // for (s32 i = 1; i < MAX_PLAYERS; i++) {
-    //     struct Controller *controller = &gControllers[i];
-    //     // if we're receiving inputs, update the controller struct
-    //     // with the new button info.
-    //     controller->controllerData = gControllers[0].controllerData;
-    //     if (random_u16() % 40 == 0){
-    //         controller->controllerData->button = random_u16();
-            
-    //     }
-    //     else{
-    //         controller->controllerData->button = 0;
-    //     }
-        
-    //     if (controller->controllerData != NULL) {
-
-    //         // the random part is added so that the marios dont just overlap constantly
-    //         // controller->rawStickX = gControllers[0].controllerData->stick_x;
-    //         // controller->rawStickY = gControllers[0].controllerData->stick_y;
-
-    //         // controller->rawStickX = gControllers[0].controllerData->stick_x + random_sign() * random_u16() % 100;
-    //         // controller->rawStickY = gControllers[0].controllerData->stick_y + random_sign() * random_u16() % 100;
-    //         controller->rawStickX = random_sign() * random_u16() % 100;
-    //         controller->rawStickY = random_sign() * random_u16() % 100;
-
-    //         if ( controller->rawStickX != 0 && controller->rawStickY != 0){
-    //             controller->controllerData->button |= INPUT_NONZERO_ANALOG;
-    //         }
-            
-
-    //         controller->extStickX = gControllers[0].controllerData->ext_stick_x;
-    //         controller->extStickY = gControllers[0].controllerData->ext_stick_y;
-
-    //         controller->buttonPressed = controller->controllerData->button
-    //                         & (controller->controllerData->button ^ controller->buttonDown);
-
-    //         controller->buttonDown = controller->controllerData->button;
-            
-    //         adjust_analog_stick(controller);
-            
-    //     }
-
-    // }
-
-
-
     levelCommandAddr = level_script_execute(levelCommandAddr);
     // display_and_vsync();
 

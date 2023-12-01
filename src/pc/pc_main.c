@@ -322,7 +322,7 @@ void cam_focus_player(int playerIndex){
     // vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
     
     gFOVState.fov = 60;
-    gHudDisplay.lives = playerIndex;
+    gHudDisplay.lives = gGlobalTimer;
 }
 
 
@@ -330,9 +330,7 @@ void force_make_frame(int playerIndex) {
 
     cam_focus_player(playerIndex);
 
-    CTX_BEGIN(CTX_INTERP);
-    patch_interpolations_before();
-    CTX_END(CTX_INTERP);
+
 
     // before level script
     config_gfx_pool();
@@ -346,56 +344,45 @@ void force_make_frame(int playerIndex) {
     display_and_vsync();
 
     // out of game loop
+    CTX_BEGIN(CTX_INTERP);
+    patch_interpolations_before();
+    CTX_END(CTX_INTERP);
+    CTX_BEGIN(CTX_RENDER);
+    produce_interpolation_frames_and_delay();
+    CTX_END(CTX_RENDER);
+    CTX_BEGIN(CTX_INTERP);
+    patch_interpolations_before();
+    CTX_END(CTX_INTERP);
     CTX_BEGIN(CTX_RENDER);
     produce_interpolation_frames_and_delay();
     CTX_END(CTX_RENDER);
 
-
 }
+
 void force_make_frame_support(int playerIndex) {
-    struct timeval startTime,time1,time2,time3,time4,time5,time6;
-
-    gettimeofday(&startTime, NULL);
-    cam_focus_player(playerIndex);
-    gettimeofday(&time1, NULL);
-
-    CTX_BEGIN(CTX_INTERP);
-    patch_interpolations_before();
-    CTX_END(CTX_INTERP);
-    gettimeofday(&time2, NULL);
+    // cam_focus_player(playerIndex);
+    gHudDisplay.lives = 420;
+    // CTX_BEGIN(CTX_INTERP);
+    // patch_interpolations_before();
+    // CTX_END(CTX_INTERP);
 
     // before level script
     config_gfx_pool();
-    gettimeofday(&time3, NULL);
 
     // level script
-    // 0.000120
     init_render_image();
     render_game();
     end_master_display_list();
     alloc_display_list(0);
-    gettimeofday(&time4, NULL);
 
     // after level script
     display_and_vsync();
-    gettimeofday(&time5, NULL);
 
     // out of game loop
-    // 0.000380
-    CTX_BEGIN(CTX_RENDER);
-    produce_interpolation_frames_and_delay();
-    CTX_END(CTX_RENDER);
-    gettimeofday(&time6, NULL);
+    // CTX_BEGIN(CTX_RENDER);
+    // produce_interpolation_frames_and_delay();
+    // CTX_END(CTX_RENDER);
 
-
-
-    double sec1 = (double)(time1.tv_usec - startTime.tv_usec) / 1000000 + (double)(time1.tv_sec - startTime.tv_sec);
-    double sec2 = (double)(time2.tv_usec - time1.tv_usec) / 1000000 + (double)(time2.tv_sec - time1.tv_sec);
-    double sec3 = (double)(time3.tv_usec - time2.tv_usec) / 1000000 + (double)(time3.tv_sec - time2.tv_sec);
-    double sec4 = (double)(time4.tv_usec - time3.tv_usec) / 1000000 + (double)(time4.tv_sec - time3.tv_sec);
-    double sec5 = (double)(time5.tv_usec - time4.tv_usec) / 1000000 + (double)(time5.tv_sec - time4.tv_sec);
-    double sec6 = (double)(time6.tv_usec - time5.tv_usec) / 1000000 + (double)(time6.tv_sec - time5.tv_sec);
-    printf("time: %f %f %f %f %f %f\n", sec1, sec2, sec3, sec4, sec5, sec6);
 }
 
 // bool doRun = false;
@@ -555,23 +542,29 @@ void update_controllers(struct inputStruct* inputs){
 
 
 struct gfxPixels** step_pixels(struct inputStruct* inputs){
-
+    
     update_controllers(inputs);
 
     produce_one_frame();
 
 
     // player 0's image gets overwritten for whatever reason if you don't have this
-    force_make_frame(MAX_PLAYERS-1);
-    force_make_frame(MAX_PLAYERS-1);
+    force_make_frame_support(MAX_PLAYERS-1);
+    force_make_frame_support(MAX_PLAYERS-1);
+    // force_make_frame(MAX_PLAYERS-1);
+    // force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
+
+        force_make_frame(i);
+
         if (gPixelPointers[i]){
             if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
             free(gPixelPointers[i]);
         }
-        force_make_frame(i);
-
         gPixelPointers[i] = gfx_get_pixels();
+
+
+        
     }
 
     return gPixelPointers;

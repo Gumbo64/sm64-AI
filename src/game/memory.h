@@ -8,8 +8,8 @@
 #define MEMORY_POOL_LEFT  0
 #define MEMORY_POOL_RIGHT 1
 
-#define GFX_POOL_SIZE      0x400000 //  4MB (Vanilla: 512kB)
-#define DEFAULT_POOL_SIZE 0x2000000 // 32MB (Vanilla: ~11MB)
+#define GFX_POOL_SIZE      0x800000 //  8MB (Vanilla: 512kB)
+#define DEFAULT_POOL_SIZE 0x4000000 // 64MB (Vanilla: ~11MB)
 
 struct DynamicPool
 {

@@ -144,8 +144,8 @@ class SM64_ENV(ParallelEnv):
         return observations, rewards, terminations, truncations, infos
     
     def render(self):
-        self.window.fill((0, 0, 0))
         self.make_imgs()
+        self.window.fill((0, 0, 0))
         for i in range(self.MAX_PLAYERS):
             gameStateStruct = self.gameStatePointers[i].contents
             tmp = self.imgs[i].convert("RGB")
@@ -164,16 +164,16 @@ class SM64_ENV(ParallelEnv):
     def make_np_imgs(self):
         for i in range(self.MAX_PLAYERS):
             gameStateStruct = self.gameStatePointers[i].contents
-            self.np_imgs[i] = np.fromiter(gameStateStruct.pixels, dtype=int, count=gameStateStruct.pixelsWidth * gameStateStruct.pixelsHeight * 3).astype(np.uint8).reshape((gameStateStruct.pixelsWidth, gameStateStruct.pixelsHeight, 3))
+            self.np_imgs[i] = np.fromiter(gameStateStruct.pixels, dtype=int, count=gameStateStruct.pixelsWidth * gameStateStruct.pixelsHeight * 3).reshape((gameStateStruct.pixelsWidth, gameStateStruct.pixelsHeight, 3))
 
             # make the image grayscale (https://stackoverflow.com/questions/41971663/use-numpy-to-convert-rgb-pixel-array-into-grayscale)
             if self.GRAYSCALE:
-                self.np_imgs[i] = np.dot(self.np_imgs[i][...,:3], [0.299, 0.587, 0.114])
-            self.np_imgs[i] = np.flipud(self.np_imgs[i])
+                self.np_imgs[i] = np.dot(self.np_imgs[i], [0.299, 0.587, 0.114])
+            self.np_imgs[i] = np.flipud(self.np_imgs[i]).astype(np.uint8)
 
     def make_imgs(self):
         for i in range(self.MAX_PLAYERS):
-            self.imgs[i] = Image.fromarray(self.np_imgs[i])
+            self.imgs[i] = Image.fromarray(self.np_imgs[i], 'L' if self.GRAYSCALE else 'RGB')
 
 
     def sample_actions(self):

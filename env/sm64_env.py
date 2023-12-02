@@ -83,16 +83,20 @@ class SM64_ENV(ParallelEnv):
             # make_action("noStick",False,False,True),
         ]
         self.N_ACTIONS = len(self.action_book)
+        self.GRAYSCALE = False
 
+        # this also needs to be changed in the c part (and then compiled) to work. Maximum is 255 because of data types in c
         self.MAX_PLAYERS = 4
+
+        self.N_SCREENS_WIDTH = 2
+        self.WINDOW_WIDTH = 256 * self.N_SCREENS_WIDTH
+        self.WINDOW_HEIGHT = 144 * self.MAX_PLAYERS // self.N_SCREENS_WIDTH + 1
 
         self.agents = [f"mario{k}" for k in range(self.MAX_PLAYERS) ]
         self.AGENT_NAME_TO_INDEX = {self.agents[k]: k for k in range(self.MAX_PLAYERS) }
         self.INDEX_TO_AGENT_NAME = {k: self.agents[k] for k in range(self.MAX_PLAYERS) }
 
-        self.N_SCREENS_WIDTH = 5
-        self.WINDOW_WIDTH = 256 * self.N_SCREENS_WIDTH
-        self.WINDOW_HEIGHT = 144 * self.MAX_PLAYERS // self.N_SCREENS_WIDTH + 1
+
         
         self.imgs = [i for i in range(self.MAX_PLAYERS)]
         self.np_imgs = [i for i in range(self.MAX_PLAYERS)]
@@ -137,7 +141,6 @@ class SM64_ENV(ParallelEnv):
         infos        = {a: {}                                          for a in self.agents}
         terminations = {a: False                                       for a in self.agents}
         truncations  = {a: False                                       for a in self.agents}
-
         return observations, rewards, terminations, truncations, infos
     
     def render(self):
@@ -145,8 +148,9 @@ class SM64_ENV(ParallelEnv):
         self.make_imgs()
         for i in range(self.MAX_PLAYERS):
             gameStateStruct = self.gameStatePointers[i].contents
-            surface = pygame.image.fromstring(self.imgs[i].tobytes(), self.imgs[i].size, self.imgs[i].mode)
-            self.window.blit(surface, ((i % self.N_SCREENS_WIDTH) * gameStateStruct.pixelsHeight, (i // 5) * gameStateStruct.pixelsWidth))
+            tmp = self.imgs[i].convert("RGB")
+            surface = pygame.image.fromstring(tmp.tobytes(), tmp.size, tmp.mode)
+            self.window.blit(surface, ((i % self.N_SCREENS_WIDTH) * gameStateStruct.pixelsHeight, (i // self.N_SCREENS_WIDTH) * gameStateStruct.pixelsWidth))
 
         pygame.display.flip()
 
@@ -163,13 +167,13 @@ class SM64_ENV(ParallelEnv):
             self.np_imgs[i] = np.fromiter(gameStateStruct.pixels, dtype=int, count=gameStateStruct.pixelsWidth * gameStateStruct.pixelsHeight * 3).astype(np.uint8).reshape((gameStateStruct.pixelsWidth, gameStateStruct.pixelsHeight, 3))
 
             # make the image grayscale (https://stackoverflow.com/questions/41971663/use-numpy-to-convert-rgb-pixel-array-into-grayscale)
-            self.np_imgs[i] = np.dot(self.np_imgs[i][...,:3], [0.299, 0.587, 0.114])
-            
+            if self.GRAYSCALE:
+                self.np_imgs[i] = np.dot(self.np_imgs[i][...,:3], [0.299, 0.587, 0.114])
             self.np_imgs[i] = np.flipud(self.np_imgs[i])
 
     def make_imgs(self):
         for i in range(self.MAX_PLAYERS):
-            self.imgs[i] = Image.fromarray(self.np_imgs[i], "L")
+            self.imgs[i] = Image.fromarray(self.np_imgs[i])
 
 
     def sample_actions(self):

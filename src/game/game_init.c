@@ -474,35 +474,35 @@ void read_controller_inputs(void) {
     }
     run_demo_inputs();
 
-    for (s32 i = 0; i < 1; i++) {
-        struct Controller *controller = &gControllers[i];
+    // for (s32 i = 0; i < 1; i++) {
+    //     struct Controller *controller = &gControllers[i];
 
-        // if we're receiving inputs, update the controller struct
-        // with the new button info.
-        if (controller->controllerData != NULL) {
-            controller->rawStickX = controller->controllerData->stick_x;
-            controller->rawStickY = controller->controllerData->stick_y;
-            controller->extStickX = controller->controllerData->ext_stick_x;
-            controller->extStickY = controller->controllerData->ext_stick_y;
-            controller->buttonPressed = controller->controllerData->button
-                                        & (controller->controllerData->button ^ controller->buttonDown);
+    //     // if we're receiving inputs, update the controller struct
+    //     // with the new button info.
+    //     if (controller->controllerData != NULL) {
+    //         controller->rawStickX = controller->controllerData->stick_x;
+    //         controller->rawStickY = controller->controllerData->stick_y;
+    //         controller->extStickX = controller->controllerData->ext_stick_x;
+    //         controller->extStickY = controller->controllerData->ext_stick_y;
+    //         controller->buttonPressed = controller->controllerData->button
+    //                                     & (controller->controllerData->button ^ controller->buttonDown);
 
-            controller->buttonDown = controller->controllerData->button;
-            adjust_analog_stick(controller);
-        } else if (i != 0) {
-            // otherwise, if the controllerData is NULL, 0 out all of the inputs.
-            controller->rawStickX = 0;
-            controller->rawStickY = 0;
-            controller->extStickX = 0;
-            controller->extStickY = 0;
-            controller->buttonPressed = 0;
-            controller->buttonDown = 0;
-            controller->stickX = 0;
-            controller->stickY = 0;
-            controller->stickMag = 0;
-        }
+    //         controller->buttonDown = controller->controllerData->button;
+    //         adjust_analog_stick(controller);
+    //     } else if (i != 0) {
+    //         // otherwise, if the controllerData is NULL, 0 out all of the inputs.
+    //         controller->rawStickX = 0;
+    //         controller->rawStickY = 0;
+    //         controller->extStickX = 0;
+    //         controller->extStickY = 0;
+    //         controller->buttonPressed = 0;
+    //         controller->buttonDown = 0;
+    //         controller->stickX = 0;
+    //         controller->stickY = 0;
+    //         controller->stickMag = 0;
+    //     }
 
-    }
+    // }
 
     // For some reason, player 1's inputs are copied to player 3's port. This
     // potentially may have been a way the developers "recorded" the inputs

@@ -7,6 +7,8 @@ import numpy as np
 from gymnasium.spaces import Discrete, MultiDiscrete
 import functools
 import math
+import os
+import platform
 
 class gfxPixels(ctypes.Structure):
     _fields_ = [
@@ -47,8 +49,8 @@ class SM64_ENV(ParallelEnv):
             make_action(0,False,False,False),
             # Jump
             make_action(0,True,False,False),
-            # Longjump
-            make_action(0,True,False,True),
+            # start longjump (crouch)
+            make_action(0,False,False,True),
             # Dive
             make_action(0,False,True,False),
 
@@ -70,11 +72,11 @@ class SM64_ENV(ParallelEnv):
             # Jump
             make_action(180,True,False,False),
 
-            # ----- NO STICK (no direction held)
-            # None
-            make_action("noStick",False,False,False),
-            # Groundpound
-            make_action("noStick",False,False,True),
+            # # ----- NO STICK (no direction held)
+            # # None
+            # make_action("noStick",False,False,False),
+            # # Groundpound
+            # make_action("noStick",False,False,True),
         ]
         self.N_ACTIONS = len(self.action_book)
 
@@ -88,11 +90,17 @@ class SM64_ENV(ParallelEnv):
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption("mario command panel")
 
-        self.dll = ctypes.CDLL(r"./build/us_pc/sm64.dll")
+        dirpath = os.path.dirname(__file__)
+
+        dll_name = "sm64.dll" if platform.platform() == "Windows" else "sm64"
+        self.dll = ctypes.CDLL( os.path.join(dirpath,"build","us_pc",dll_name) )     
+        
         self.dll.step_pixels.argtypes = [inputStruct * self.MAX_PLAYERS]
         self.dll.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gfxPixels))
         
-        self.dll.main_func()
+        self.dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p]
+
+        self.dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'))
         for i in range(10):
             actions = [random.randint(0,self.N_ACTIONS-1) for _ in range(self.MAX_PLAYERS)]
             self.step(actions)
@@ -146,6 +154,8 @@ if __name__ == "__main__":
             actions = [0 for _ in range(env.MAX_PLAYERS)]
             if i % 10 == 0:
                 actions = [2 for _ in range(env.MAX_PLAYERS)]
+            if i % 10 == 1:
+                actions = [1 for _ in range(env.MAX_PLAYERS)]
                 
 
             

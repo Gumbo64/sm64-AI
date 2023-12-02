@@ -513,7 +513,7 @@ struct inputStruct {
 };
 
 void update_controllers(struct inputStruct* inputs){
-    for (s32 i = 1; i < MAX_PLAYERS; i++) {
+    for (s32 i = 0; i < MAX_PLAYERS; i++) {
         struct Controller *controller = &gControllers[i];
         struct inputStruct input = inputs[i];
 
@@ -589,7 +589,7 @@ void makemariolol(){
     }
     
 }
-void main_func(void) {
+void main_func(char *relGameDir, char *relUserPath) {
 
     // Ensure it is a server, avoid CLI options
     gCLIOpts.NetworkPort = 7777;
@@ -597,8 +597,8 @@ void main_func(void) {
     gCLIOpts.FullScreen = 1;
     // gCLIOpts
 
-    const char *gamedir = gCLIOpts.GameDir[0] ? gCLIOpts.GameDir : FS_BASEDIR;
-    const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : ".";
+    const char *gamedir = relGameDir;
+    const char *userpath = relUserPath;
     fs_init(sys_ropaths, gamedir, userpath);
     printf("---------%s %s----------\n",gamedir,userpath);
     sync_objects_init_system();
@@ -723,8 +723,8 @@ void main_func(void) {
 }
 
 int main(int argc, char *argv[]) {
-    parse_cli_opts(argc, argv);
-    main_func();
+    // parse_cli_opts(argc, argv);
+    // main_func("res",".");
     return 0;
 }
 

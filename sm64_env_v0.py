@@ -1,4 +1,4 @@
-from sm64_env import SM64_ENV
+from env.sm64_env import SM64_ENV
 
 env = SM64_ENV()
 # env.reset()

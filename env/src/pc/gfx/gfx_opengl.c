@@ -1,4 +1,4 @@
-#ifdef RAPI_GL
+// #ifdef RAPI_GL
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -726,6 +726,7 @@ static void gfx_opengl_shutdown(void) {
 // MADE FOR AI 
 static unsigned char* gfx_opengl_get_frame_pixels(int width, int height){
     unsigned char* pixels = (unsigned char*)malloc(3 * width * height);
+    // can get grayscale images by changing GL_RGB to GL_
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
     return pixels;
 } 
@@ -757,4 +758,4 @@ struct GfxRenderingAPI gfx_opengl_api = {
     gfx_opengl_get_frame_pixels
 };
 
-#endif // RAPI_GL
+// #endif // RAPI_GL

@@ -92,7 +92,7 @@ f32 gRenderingDelta = 0;
 
 f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
-struct gfxPixels* gPixelPointers[MAX_PLAYERS] = { NULL };
+struct gameStateStruct* gGameStateStructs[MAX_PLAYERS] = { NULL };
 bool gRenderingToggle = FALSE;
 
 
@@ -412,100 +412,6 @@ void step(){
 }
 
 
-
-#define RAY_LEFTRIGHT_RANGE 60
-#define RAY_UPDOWN_RANGE 30
-#define LOG_MODE 1
-
-// // this function is almost the same as the rom_hack_cam_can_see_mario() function, look at that
-// struct gfxPixels get_raycast_pixels(int playerIndex){
-//     // malloc is not needed at the moment but its consistent with the opengl pixels
-//     // i'll probably allow it dynamically changing later from python or whatever anyways
-    
-//     unsigned char* raycast_pixels = (unsigned char*)malloc((RAY_LEFTRIGHT_RANGE * 2 + 1) * (RAY_UPDOWN_RANGE * 2 + 1));
-
-//     struct Surface *surf = NULL;
-    
-//     // raycast starts from marios position
-//     Vec3f startpos;
-//     vec3f_copy(startpos, gMarioStates[playerIndex].pos);
-//     startpos[1] += 300;
-
-//     f32 maxDist = 15000;
-//     f32 minDist = 400;
-//     // maxDist = 1000;
-//     // mario's yaw and pitch to start from
-//     s16 mPitch = gMarioStates[playerIndex].faceAngle[0];
-//     s16 mYaw = gMarioStates[playerIndex].faceAngle[1];
-
-//     int pixels_index = 0;
-
-//     int degreeMult = 2;
-    
-//     for (s16 yawOffset = -RAY_LEFTRIGHT_RANGE; yawOffset <= RAY_LEFTRIGHT_RANGE; yawOffset++) {
-//         for (s16 pitchOffset = -RAY_UPDOWN_RANGE; pitchOffset <= RAY_UPDOWN_RANGE; pitchOffset++) {
-//             Vec3f target;
-//             vec3f_set_dist_and_angle(startpos,
-//                 target,
-//                 maxDist,
-//                 mPitch + DEGREES(pitchOffset) * degreeMult,
-//                 mYaw + DEGREES(yawOffset) * degreeMult);
-
-//             Vec3f raydir;
-//             vec3f_dif(raydir, target, startpos);
-//             Vec3f hitpos;
-//             find_surface_on_ray(startpos, raydir, &surf, hitpos);
-            
-//             // get distance that the raycast travelled
-//             Vec3f dir;
-//             if (surf != NULL) {  
-//                 // if there is a collision 
-//                 vec3f_dif(dir, hitpos, startpos);
-//                 f32 d;
-//                 if (LOG_MODE){
-//                     d = (log(vec3f_length(dir)) - log(minDist))/(log(maxDist) - log(minDist)) * 255;
-//                     d = MAX(0,d);
-//                     raycast_pixels[pixels_index] = (unsigned char)(d);
-//                 }else{
-//                     d = (vec3f_length(dir)-minDist)/(maxDist-minDist) * 255;
-//                     d = MAX(0,d);
-//                     raycast_pixels[pixels_index] = (unsigned char)(d);
-//                 }
-//             }else{
-//                 // no collision
-//                 raycast_pixels[pixels_index] = 255;
-//             }
-
-//             pixels_index++;
-//         }
-//     }
-
-//     struct gfxPixels tempp = {
-//         .width = RAY_LEFTRIGHT_RANGE * 2 + 1,
-//         .height = RAY_UPDOWN_RANGE * 2 + 1,
-//         .pixels = raycast_pixels,
-//     };
-//     return tempp;
-// }
-
-
-// struct gfxPixels step_ray_pixels(){
-//     gRenderingToggle = TRUE;
-//     gfx_start_frame();
-//     produce_one_frame();
-    
-//     // for(int i=0; i<MAX_PLAYERS; i++){
-//     for(int i=0; i<MAX_PLAYERS; i++){
-//         if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
-//         gPixelPointers[i] = get_raycast_pixels(i);
-//     }
-
-//     gfx_end_frame();
-
-
-//     return gPixelPointers[1];
-// }
-
 struct inputStruct {
     s16 stickX;
     s16 stickY;
@@ -547,7 +453,7 @@ void reset(void){
     reset_script();
 }
 
-struct gfxPixels** step_pixels(struct inputStruct* inputs){
+struct gameStateStruct** step_pixels(struct inputStruct* inputs){
 
     update_controllers(inputs);
 
@@ -557,19 +463,24 @@ struct gfxPixels** step_pixels(struct inputStruct* inputs){
     // player 0's image gets overwritten for whatever reason if you don't have this
     force_make_frame_support(MAX_PLAYERS-1);
     force_make_frame_support(MAX_PLAYERS-1);
-    // force_make_frame(MAX_PLAYERS-1);
-    // force_make_frame(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
         force_make_frame(i);
 
-        if (gPixelPointers[i]){
-            if (gPixelPointers[i]->pixels) free(gPixelPointers[i]->pixels);
-            free(gPixelPointers[i]);
+        if (gGameStateStructs[i]){
+            if (gGameStateStructs[i]->pixels) free(gGameStateStructs[i]->pixels);
+            free(gGameStateStructs[i]);
         }
-        gPixelPointers[i] = gfx_get_pixels();
+        gGameStateStructs[i] = gfx_get_pixels();
+        gGameStateStructs[i]->terminal = false;
+
+        gGameStateStructs[i]->posX = gMarioStates[i].pos[0];
+        gGameStateStructs[i]->posY = gMarioStates[i].pos[1];
+        gGameStateStructs[i]->posZ = gMarioStates[i].pos[2];
+        
+        
     }
 
-    return gPixelPointers;
+    return gGameStateStructs;
 }
 
 

@@ -29,14 +29,18 @@ void gfx_precache_textures(void);
 void gfx_shutdown(void);
 void gfx_pc_precomp_shader(uint32_t rgb1, uint32_t alpha1, uint32_t rgb2, uint32_t alpha2, uint32_t flags);
 
-struct gfxPixels {
+struct gameStateStruct {
     unsigned char* pixels;
 
-    int width;
-    int height;
+    int pixelsWidth;
+    int pixelsHeight;
+    bool terminal;
+    float posX;
+    float posY;
+    float posZ;
 };
 
-struct gfxPixels* gfx_get_pixels(void);
+struct gameStateStruct* gfx_get_pixels(void);
 void FLOOOOSH(void);
 
 #ifdef __cplusplus

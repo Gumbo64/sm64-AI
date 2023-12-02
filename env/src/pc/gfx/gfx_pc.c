@@ -2222,10 +2222,10 @@ void OPTIMIZE_O3 djui_gfx_run_dl(Gfx* cmd) {
 }
 
 
-struct gfxPixels* gfx_get_pixels(void) {
-    struct gfxPixels* tempp = malloc(sizeof(struct gfxPixels));
-    tempp->width = gfx_current_dimensions.width;
-    tempp->height = gfx_current_dimensions.height;
+struct gameStateStruct* gfx_get_pixels(void) {
+    struct gameStateStruct* tempp = malloc(sizeof(struct gameStateStruct));
+    tempp->pixelsWidth = gfx_current_dimensions.width;
+    tempp->pixelsHeight = gfx_current_dimensions.height;
     tempp->pixels = gfx_rapi->get_frame_pixels(rdp.viewport.width, rdp.viewport.height);
     return tempp;
 }

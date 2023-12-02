@@ -27,7 +27,7 @@ pygame.display.set_caption("mario command panel")
 funky = ctypes.CDLL(r"./build/us_pc/sm64.dll")
 
 
-class gfxPixels(ctypes.Structure):
+class gameStateStruct(ctypes.Structure):
     _fields_ = [
         ("pixels",ctypes.POINTER(ctypes.c_ubyte) ), 
         ("height",ctypes.c_int ), 
@@ -44,10 +44,10 @@ class inputStruct(ctypes.Structure):
 funky.main_func()
 funky.makemariolol()
 
-funky.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gfxPixels))
+funky.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(gameStateStruct))
 funky.step_pixels.argtypes = [inputStruct * MAX_PLAYERS]
 
-# funky.step_ray_pixels.restype = gfxPixels
+# funky.step_ray_pixels.restype = gameStateStruct
 
 
 imgs = list(range(MAX_PLAYERS))

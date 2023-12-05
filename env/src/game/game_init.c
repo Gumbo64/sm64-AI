@@ -599,6 +599,7 @@ void thread5_game_loop(UNUSED void *arg) {
 }
 void reset_script(){
     levelCommandAddr = segmented_to_virtual(level_script_entry);
+    gGlobalTimer++;
 }
 
 

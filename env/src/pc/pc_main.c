@@ -360,7 +360,7 @@ void force_make_frame(int playerIndex) {
 
 }
 
-void force_make_frame_support(int playerIndex) {
+void force_make_frame_support() {
     // cam_focus_player(playerIndex);
     gHudDisplay.lives = 420;
     // CTX_BEGIN(CTX_INTERP);
@@ -417,13 +417,15 @@ struct inputStruct {
     s16 stickY;
     bool buttonInput[3];
 };
-
+void adjust_analog_stick(struct Controller* controller);
 void update_controllers(struct inputStruct* inputs){
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
+
         struct Controller *controller = &gControllers[i];
         struct inputStruct input = inputs[i];
 
         controller->controllerData = gControllers[0].controllerData;
+
 
         controller->rawStickX = input.stickX;
         controller->rawStickY = input.stickY;
@@ -442,36 +444,58 @@ void update_controllers(struct inputStruct* inputs){
                         & (controller->controllerData->button ^ controller->buttonDown);
 
         controller->buttonDown = controller->controllerData->button;
-        
+
         adjust_analog_stick(controller);
     }
-}
 
+}
+void reset_script(void);
 void reset(void){
     // init_level();
     // init_level();
+    // thread5_game_loop(NULL);
     reset_script();
 }
 
-struct gameStateStruct** step_pixels(struct inputStruct* inputs){
-
-    update_controllers(inputs);
-
-    produce_one_frame();
-
-
-    // player 0's image gets overwritten for whatever reason if you don't have this
-    force_make_frame_support(MAX_PLAYERS-1);
-    force_make_frame_support(MAX_PLAYERS-1);
+struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
+    // printf("step_pixels\n");
+    struct inputStruct input = inputs[MAX_PLAYERS-1];
+    // printf("%d %d %d %d %d\n", input.stickX,input.stickY,input.buttonInput[0],input.buttonInput[1],input.buttonInput[2]);
+    
+    struct Controller *controller = &gControllers[0];
+    if (controller->controllerData != NULL){
+        printf("%d %d %d %d %d\n", controller->rawStickX,controller->rawStickY,controller->controllerData->button,controller->buttonDown,controller->buttonPressed);
+    
+    }else{
+        printf("fuuck\n");
+    }
+    
+    for(int i = 0; i<n_steps; i++){
+        // printf("produce\n");
+        update_controllers(inputs);
+        // printf("produce2");
+        produce_one_frame();
+        // printf("frame\n");
+        // player 0' image gets overwritten without this (yes, twice) and also it updates the animations
+        force_make_frame_support();
+        force_make_frame_support();
+    }
+    // printf("out of loop\n");
+    // // player 0's image gets overwritten for whatever reason if you don't have this
+    // force_make_frame_support(MAX_PLAYERS-1);
+    // force_make_frame_support(MAX_PLAYERS-1);
     for(int i = 0; i<MAX_PLAYERS; i++){
+        // printf("force make\n");
         force_make_frame(i);
 
         if (gGameStateStructs[i]){
             if (gGameStateStructs[i]->pixels) free(gGameStateStructs[i]->pixels);
             free(gGameStateStructs[i]);
         }
+        // printf("get pixels\n");
         gGameStateStructs[i] = gfx_get_pixels();
-        gGameStateStructs[i]->terminal = false;
+        // to get the true health, you must do the >>8
+        gGameStateStructs[i]->health = (gMarioStates[i].health >> 8);
 
         gGameStateStructs[i]->posX = gMarioStates[i].pos[0];
         gGameStateStructs[i]->posY = gMarioStates[i].pos[1];
@@ -479,7 +503,7 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs){
         
         
     }
-
+    // printf("end of step_pixels\n");
     return gGameStateStructs;
 }
 
@@ -634,11 +658,11 @@ void main_func(char *relGameDir, char *relUserPath) {
 #endif
 }
 
-int main(int argc, char *argv[]) {
-    // parse_cli_opts(argc, argv);
-    // main_func("res",".");
-    return 0;
-}
+// int main(int argc, char *argv[]) {
+//     // parse_cli_opts(argc, argv);
+//     // main_func("res",".");
+//     return 0;
+// }
 
 
 

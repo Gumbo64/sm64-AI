@@ -1,23 +1,14 @@
 from env.sm64_env import SM64_ENV
+import random
 
-env = SM64_ENV()
-    # env.reset()
-done = False
-
-while not done:
-    for i in range(1000000):
-        list_actions = [0 for _ in range(env.MAX_PLAYERS)]
-        if i % 10 == 0:
-            list_actions = [2 for _ in range(env.MAX_PLAYERS)]
-        if i % 10 == 1:
-            list_actions = [1 for _ in range(env.MAX_PLAYERS)]
-            
-
-        
-        # actions = [random.randint(0,env.N_ACTIONS-1) for _ in range(env.MAX_PLAYERS)]
-        actions = {f"mario{k}": list_actions[k] for k in range(env.MAX_PLAYERS) }
-        env.step(actions)
+env = SM64_ENV(GRAYSCALE=True,N_ACTION_REPEAT=490, N_STACKED_FRAMES=4)
+for i in range(100):
+    while env.agents:
+        # this is where you would insert your policy
+        actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+        observations, rewards, terminations, truncations, infos = env.step(actions)
         env.render()
-    print("RESET")
+        # print(env.agents)
+    print(f"RESET {i}")
     env.reset()
-    
+print("Passed test :)")

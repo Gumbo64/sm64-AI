@@ -459,6 +459,7 @@ u32 common_air_action_step(struct MarioState *m, u32 landAction, s32 animation, 
             drop_and_set_mario_action(m, ACT_LEDGE_GRAB, 0);
             break;
 
+
         case AIR_STEP_GRABBED_CEILING:
             set_mario_action(m, ACT_START_HANGING, 0);
             break;

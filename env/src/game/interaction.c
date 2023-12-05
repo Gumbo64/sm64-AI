@@ -2261,6 +2261,8 @@ u32 check_npc_talk(struct MarioState *m, struct Object *o) {
 }
 
 u32 interact_text(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
+    // AISHIZ
+    return FALSE;
     if (!m || !o) { return FALSE; }
     u32 interact = FALSE;
     // bots are banned from reading SHIZ

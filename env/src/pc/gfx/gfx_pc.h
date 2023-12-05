@@ -34,7 +34,7 @@ struct gameStateStruct {
 
     int pixelsWidth;
     int pixelsHeight;
-    bool terminal;
+    int health;
     float posX;
     float posY;
     float posZ;

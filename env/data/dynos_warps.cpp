@@ -60,9 +60,9 @@ bool DynOS_Warp_ToWarpNode(s32 aLevel, s32 aArea, s32 aAct, s32 aWarpId) {
 //
 
 bool DynOS_Warp_ToLevel(s32 aLevel, s32 aArea, s32 aAct) {
-    if (!DynOS_Level_GetWarpEntry(aLevel, aArea)) {
-        return false;
-    }
+    // if (!DynOS_Level_GetWarpEntry(aLevel, aArea)) {
+    //     return false;
+    // }
 
     // stop music
     play_music(SEQ_PLAYER_LEVEL, 0, 0);
@@ -72,6 +72,8 @@ bool DynOS_Warp_ToLevel(s32 aLevel, s32 aArea, s32 aAct) {
     sDynosWarpActNum   = aAct;
     return true;
 }
+
+
 
 bool DynOS_Warp_RestartLevel() {
     return DynOS_Warp_ToLevel(gCurrLevelNum, 1, gCurrActNum);

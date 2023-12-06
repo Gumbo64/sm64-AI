@@ -515,6 +515,9 @@ static void load_environmental_regions(s16 **data) {
     }
 }
 
+
+
+
 /**
  * Allocate some of the main pool for surfaces (2300 surf) and for surface nodes (7000 nodes).
  */

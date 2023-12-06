@@ -449,26 +449,37 @@ void update_controllers(struct inputStruct* inputs){
     }
 
 }
+
 void reset_script(void);
 void reset(void){
     // init_level();
     // init_level();
     // thread5_game_loop(NULL);
-    reset_script();
+    // load_mario_area();
+    // warp to LEVEL_BOB
+    // reset_script();
+    dynos_warp_to_level(LEVEL_BOB, 1, 0);
+    for (int i=0; i<MAX_PLAYERS;i++){
+        gMarioStates[i].health = 0x880;
+        gMarioStates[i].numLives = 4;
+    }
+
+    // init_mario();
+    // makemariolol();
+    // struct NetworkPlayer* npp = &gNetworkPlayers[0];
+    // network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
+    // npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex
+    // 1, 0, 9, 1
+    // int level_num = 9;
+    // int area_index = 1;
+
+    // level_trigger_warp(gMarioState, 1);
 }
 
 struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
     // printf("step_pixels\n");
     struct inputStruct input = inputs[MAX_PLAYERS-1];
     // printf("%d %d %d %d %d\n", input.stickX,input.stickY,input.buttonInput[0],input.buttonInput[1],input.buttonInput[2]);
-    
-    struct Controller *controller = &gControllers[0];
-    if (controller->controllerData != NULL){
-        printf("%d %d %d %d %d\n", controller->rawStickX,controller->rawStickY,controller->controllerData->button,controller->buttonDown,controller->buttonPressed);
-    
-    }else{
-        printf("fuuck\n");
-    }
     
     for(int i = 0; i<n_steps; i++){
         // printf("produce\n");
@@ -480,10 +491,7 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         force_make_frame_support();
         force_make_frame_support();
     }
-    // printf("out of loop\n");
-    // // player 0's image gets overwritten for whatever reason if you don't have this
-    // force_make_frame_support(MAX_PLAYERS-1);
-    // force_make_frame_support(MAX_PLAYERS-1);
+
     for(int i = 0; i<MAX_PLAYERS; i++){
         // printf("force make\n");
         force_make_frame(i);

@@ -4,7 +4,7 @@ import pygame
 import random
 from PIL import Image
 import numpy as np
-from gymnasium.spaces import Discrete, MultiDiscrete
+from gymnasium.spaces import Discrete, MultiDiscrete, Box
 import functools
 import math
 import os
@@ -133,14 +133,14 @@ class SM64_ENV(ParallelEnv):
 
         self.dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'))
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
-        self.step(actions)
+        for i in range(40):
+            self.step(actions)
         # print("making marios")
         self.dll.makemariolol()
         self.reset()
 
     def reset(self, seed=None, options=None):
         self.dll.reset()
-
 
         self.agents = self.possible_agents.copy()
         # reset the image stacks
@@ -151,9 +151,7 @@ class SM64_ENV(ParallelEnv):
         
 
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
-        print(actions)
         observations, rewards, terminations, truncations, infos = self.step(actions)
-
 
         return observations, infos
 
@@ -161,7 +159,7 @@ class SM64_ENV(ParallelEnv):
         inputStructs = (INPUT_STRUCT * self.MAX_PLAYERS)()
         for name in actions:
             inputStructs[self.AGENT_NAME_TO_INDEX[name]] = self.action_book[actions[name]]
-            
+
         self.gameStatePointers = self.dll.step_pixels(inputStructs,self.N_ACTION_REPEAT)
 
         self.make_np_imgs()
@@ -175,7 +173,7 @@ class SM64_ENV(ParallelEnv):
         # print([self.gameStatePointers[self.AGENT_NAME_TO_INDEX[a]].contents.health for a in self.agents])
         if any(terminations.values()) or all(truncations.values()):
             self.agents = []
-
+        # self.render()
         return observations, rewards, terminations, truncations, infos
     
     def render(self):
@@ -223,16 +221,14 @@ class SM64_ENV(ParallelEnv):
             self.np_img_stacks[i] = np.roll(self.np_img_stacks[i],1,axis=0)
             self.np_img_stacks[i][0] = new_np_img
 
-
-
-
-
-
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         # gymnasium spaces are defined and documented here: https://gymnasium.farama.org/api/spaces/
-        return MultiDiscrete([self.IMG_HEIGHT * self.IMG_WIDTH] * (1 if self.GRAYSCALE else 3) * self.N_STACKED_FRAMES)
-
+        # return MultiDiscrete([self.IMG_HEIGHT * self.IMG_WIDTH] * (1 if self.GRAYSCALE else 3) * self.N_STACKED_FRAMES)
+        if self.GRAYSCALE:
+            return Box(low=0, high=255, shape=(self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH), dtype=np.uint8)
+        return Box(low=0, high=255, shape=(self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH,1 if self.GRAYSCALE else 3), dtype=np.uint8)
+        
     # Action space should be defined here.
     # If your spaces change over time, remove this line (disable caching).
     @functools.lru_cache(maxsize=None)
@@ -253,7 +249,8 @@ if __name__ == "__main__":
                 
             list_actions = [random.randint(0,env.N_ACTIONS-1) for _ in range(env.MAX_PLAYERS)]
             actions = {f"mario{k}": list_actions[k] for k in range(env.MAX_PLAYERS) }
-            env.step(actions)
+            observations, rewards, terminations, truncations, infos = env.step(actions)
+            print(observations["mario0"].shape)
             env.render()
 
         print("RESET")

@@ -598,8 +598,9 @@ void thread5_game_loop(UNUSED void *arg) {
     // gGlobalTimer++;
 }
 void reset_script(){
+    // init_controllers();
     levelCommandAddr = segmented_to_virtual(level_script_entry);
-    gGlobalTimer++;
+    // gGlobalTimer++;
 }
 
 

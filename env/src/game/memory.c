@@ -100,6 +100,7 @@ struct GrowingPool* growing_pool_init(struct GrowingPool* pool, u32 nodeSize) {
         // clear existing pool
         struct GrowingPoolNode* node = pool->tail;
         while (node) {
+            // SHIZZZ FAILED HERE SOMEHOW. mustve used too much space. Need to clear better
             node->usedSpace = 0;
             node = node->prev;
         }

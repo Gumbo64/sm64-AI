@@ -586,4 +586,6 @@ void update_character_anim_offset(struct MarioState* m) {
 
     marioObj->header.gfx.pos[1] = m->pos[1] + m->curAnimOffset;
     marioObj->header.gfx.node.flags |= GRAPH_RENDER_PLAYER;
+    // marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_PLAYER;
+    
 }

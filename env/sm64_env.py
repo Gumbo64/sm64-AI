@@ -46,7 +46,8 @@ class SM64_ENV(ParallelEnv):
         "name": "sm64",
     }
 
-    def __init__(self,GRAYSCALE=False , N_ACTION_REPEAT=1 , N_STACKED_FRAMES=4, N_RENDER_COLUMNS=2):
+    def __init__(self, FRAME_SKIP=1 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, N_RENDER_COLUMNS=5, render_mode="normal"):
+        self.render_mode = render_mode
         # angleDegrees, A, B, Z
         # if angleDegrees == "noStick" then there is no direction held
         self.action_book = [
@@ -84,17 +85,15 @@ class SM64_ENV(ParallelEnv):
             # # Groundpound
             # make_action("noStick",False,False,True),
         ]
-        # this also needs to be changed in the c part (and then compiled) to work. Maximum is 255 because of data types in c
-        self.MAX_PLAYERS = 4
-        self.IMG_WIDTH = 256
-        self.IMG_HEIGHT = 144
+        # this also needs to be changed in the c part (env/include/types.h) (and then compiled) to work. Maximum is 255 because of data types in c
+        self.MAX_PLAYERS = 20
+        self.num_envs = self.MAX_PLAYERS
+        self.IMG_WIDTH = 128
+        self.IMG_HEIGHT = 72
 
         self.N_ACTIONS = len(self.action_book)
-        self.GRAYSCALE = GRAYSCALE
-        self.N_STACKED_FRAMES = N_STACKED_FRAMES
 
-
-        self.N_ACTION_REPEAT = N_ACTION_REPEAT
+        self.FRAME_SKIP = FRAME_SKIP
 
 
         self.N_RENDER_COLUMNS = N_RENDER_COLUMNS
@@ -109,11 +108,7 @@ class SM64_ENV(ParallelEnv):
         self.INDEX_TO_AGENT_NAME = {k: self.agents[k] for k in range(self.MAX_PLAYERS) }
 
 
-
-        if self.GRAYSCALE:
-            self.np_img_stacks = [np.zeros((self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
-        else:
-            self.np_img_stacks = [np.zeros((self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
+        self.np_imgs = [np.zeros((self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
 
         self.rewards = [0 for _ in range(self.MAX_PLAYERS)]
 
@@ -129,11 +124,11 @@ class SM64_ENV(ParallelEnv):
         self.dll.step_pixels.argtypes = [INPUT_STRUCT * self.MAX_PLAYERS , ctypes.c_int]
         self.dll.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(GAME_STATE_STRUCT))
         
-        self.dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p]
+        self.dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p, ctypes.c_bool,ctypes.c_int]
 
-        self.dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'))
+        self.dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'),MAKE_OTHER_PLAYERS_INVISIBLE,PLAYER_COLLISION_TYPE)
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
-        for i in range(40):
+        for i in range(10):
             self.step(actions)
         # print("making marios")
         self.dll.makemariolol()
@@ -144,10 +139,7 @@ class SM64_ENV(ParallelEnv):
 
         self.agents = self.possible_agents.copy()
         # reset the image stacks
-        if self.GRAYSCALE:
-            self.np_img_stacks = [np.zeros((self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
-        else:
-            self.np_img_stacks = [np.zeros((self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
+        self.np_imgs = [np.zeros((self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
         
 
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
@@ -160,12 +152,12 @@ class SM64_ENV(ParallelEnv):
         for name in actions:
             inputStructs[self.AGENT_NAME_TO_INDEX[name]] = self.action_book[actions[name]]
 
-        self.gameStatePointers = self.dll.step_pixels(inputStructs,self.N_ACTION_REPEAT)
+        self.gameStatePointers = self.dll.step_pixels(inputStructs,self.FRAME_SKIP)
 
         self.make_np_imgs()
         self.calc_rewards()
 
-        observations = {a: self.np_img_stacks[ self.AGENT_NAME_TO_INDEX[a] ]                        for a in self.agents}
+        observations = {a: self.np_imgs[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
         rewards      = {a: self.rewards[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
         infos        = {a: {}                                                                       for a in self.agents}
         terminations = {a: self.gameStatePointers[self.AGENT_NAME_TO_INDEX[a]].contents.health == 0 for a in self.agents}
@@ -173,6 +165,8 @@ class SM64_ENV(ParallelEnv):
         # print([self.gameStatePointers[self.AGENT_NAME_TO_INDEX[a]].contents.health for a in self.agents])
         if any(terminations.values()) or all(truncations.values()):
             self.agents = []
+        if self.render_mode == "forced":
+            self.render()
         # self.render()
         return observations, rewards, terminations, truncations, infos
     
@@ -180,13 +174,8 @@ class SM64_ENV(ParallelEnv):
         imgs = [0 for i in range(self.MAX_PLAYERS)]
         for i in range(self.MAX_PLAYERS):
             # [0] gives newest image
-            imgs[i] = Image.fromarray(self.np_img_stacks[i][0], 'L' if self.GRAYSCALE else 'RGB')
+            imgs[i] = Image.fromarray(self.np_imgs[i],'RGB')
 
-        # can render the frame stack instead
-        # imgs = [0 for i in range(self.N_STACKED_FRAMES)]
-        # for i in range(self.N_STACKED_FRAMES):
-        #     # [0] gives newest image
-        #     imgs[i] = Image.fromarray(self.np_img_stacks[0][i], 'L' if self.GRAYSCALE else 'RGB')
 
         self.window.fill((0, 0, 0))
         for i in range(len(imgs)):
@@ -204,30 +193,21 @@ class SM64_ENV(ParallelEnv):
             s = self.gameStatePointers[i].contents
             # if i == 0:
             #     print(s.posX,s.posZ)
-            self.rewards[i] = 30 - ( (s.posX - goalpos[0])**2  + (s.posZ - goalpos[2])**2 )/4000000
+            self.rewards[i] = (30 - ( (s.posX - goalpos[0])**2  + (s.posZ - goalpos[2])**2 )/4000000 ) / 30
     
 
     def make_np_imgs(self):
         for i in range(self.MAX_PLAYERS):
             gameStateStruct = self.gameStatePointers[i].contents
             new_np_img = np.fromiter(gameStateStruct.pixels, dtype=int, count=gameStateStruct.pixelsWidth * gameStateStruct.pixelsHeight * 3).reshape((gameStateStruct.pixelsWidth, gameStateStruct.pixelsHeight, 3))
-
-            # make the image grayscale (https://stackoverflow.com/questions/41971663/use-numpy-to-convert-rgb-pixel-array-into-grayscale)
-            if self.GRAYSCALE:
-                new_np_img = np.dot(new_np_img, [0.299, 0.587, 0.114])
             new_np_img = np.flipud(new_np_img).astype(np.uint8)
 
-            # make 
-            self.np_img_stacks[i] = np.roll(self.np_img_stacks[i],1,axis=0)
-            self.np_img_stacks[i][0] = new_np_img
+            self.np_imgs[i] = new_np_img
 
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         # gymnasium spaces are defined and documented here: https://gymnasium.farama.org/api/spaces/
-        # return MultiDiscrete([self.IMG_HEIGHT * self.IMG_WIDTH] * (1 if self.GRAYSCALE else 3) * self.N_STACKED_FRAMES)
-        if self.GRAYSCALE:
-            return Box(low=0, high=255, shape=(self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH), dtype=np.uint8)
-        return Box(low=0, high=255, shape=(self.N_STACKED_FRAMES,self.IMG_HEIGHT,self.IMG_WIDTH,1 if self.GRAYSCALE else 3), dtype=np.uint8)
+        return Box(low=0, high=255, shape=(self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8)
         
     # Action space should be defined here.
     # If your spaces change over time, remove this line (disable caching).
@@ -236,7 +216,7 @@ class SM64_ENV(ParallelEnv):
         return Discrete(self.N_ACTIONS)
 
 if __name__ == "__main__":
-    env = SM64_ENV(GRAYSCALE=False,N_ACTION_REPEAT=4)
+    env = SM64_ENV(FRAME_SKIP=4)
 
     done = False
     while not done:
@@ -250,7 +230,7 @@ if __name__ == "__main__":
             list_actions = [random.randint(0,env.N_ACTIONS-1) for _ in range(env.MAX_PLAYERS)]
             actions = {f"mario{k}": list_actions[k] for k in range(env.MAX_PLAYERS) }
             observations, rewards, terminations, truncations, infos = env.step(actions)
-            print(observations["mario0"].shape)
+            # print("SHAPE: ",observations["mario0"].shape)
             env.render()
 
         print("RESET")

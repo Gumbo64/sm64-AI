@@ -94,7 +94,7 @@ f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
 struct gameStateStruct* gGameStateStructs[MAX_PLAYERS] = { NULL };
 bool gRenderingToggle = FALSE;
-
+bool makeOtherPlayersInvisible = FALSE;
 
 // 1 is true, 0 is false
 #define MAX_GAME_SPEED 1
@@ -326,12 +326,19 @@ void cam_focus_player(int playerIndex){
     gHudDisplay.lives = gGlobalTimer;
 }
 
-
+#define MAKE_OTHERS_INVISIBLE 1
 void force_make_frame(int playerIndex) {
 
     cam_focus_player(playerIndex);
-
-
+    if (makeOtherPlayersInvisible){
+        for (int i=0; i<MAX_PLAYERS;i++){
+            if (i == playerIndex){
+                gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
+            }else{
+                gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
+            }
+        }
+    }
 
     // before level script
     config_gfx_pool();
@@ -532,8 +539,8 @@ void makemariolol(){
     }
     
 }
-void main_func(char *relGameDir, char *relUserPath) {
-
+void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type) {
+    makeOtherPlayersInvisible = invisible;
     // Ensure it is a server, avoid CLI options
     gCLIOpts.NetworkPort = 7777;
     gCLIOpts.Network = NT_SERVER;
@@ -643,6 +650,8 @@ void main_func(char *relGameDir, char *relUserPath) {
     } else {
         network_init(NT_NONE, false);
     }
+
+    gServerSettings.playerInteractions = collision_type;
 
     audio_init();
     sound_init();

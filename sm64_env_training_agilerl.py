@@ -1,58 +1,59 @@
-"""This tutorial shows how to train an MATD3 agent on the simple speaker listener multi-particle environment.
+"""This tutorial shows how to train an MADDPG agent on the space invaders atari environment.
 
-Authors: Michael (https://github.com/mikepratt1), Nickua (https://github.com/nicku-a)
+Authors: Michael (https://github.com/mikepratt1), Nick (https://github.com/nicku-a)
 """
 import os
 
 import numpy as np
+import supersuit as ss
 import torch
+from env.sm64_env import SM64_ENV
+from tqdm import trange
+
 from agilerl.components.multi_agent_replay_buffer import MultiAgentReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.utils.utils import initialPopulation
-from tqdm import trange
-
-from env.sm64_env import SM64_ENV
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("===== AgileRL MATD3 =====")
-
-    # Define the simple speaker listener environment as a parallel environment
-    env = SM64_ENV(GRAYSCALE=True, N_ACTION_REPEAT=4, N_STACKED_FRAMES=4)
-    env.reset()
+    print("===== AgileRL Online Multi-Agent Demo =====")
+    print(device)
 
     # Define the network configuration
-    # NET_CONFIG = {
-    #     "arch": "mlp",  # Network architecture
-    #     "h_size": [32, 32],  # Actor hidden size
-    # }
     NET_CONFIG = {
-      'arch': 'cnn',      # Network architecture
-      'h_size': [32,32],    # Network hidden size
-      'c_size': [env.N_ACTION_REPEAT, 32], # CNN channel size
-    #   4 channels because our stack of frames is 4, no colour channel
-      'k_size': [(1,3,3),(1,3,3)],   # CNN kernel size
-      's_size': [2, 2],   # CNN stride size
-      'normalize': True   # Normalize image from range [0,255] to [0,1]
+        "arch": "cnn",  # Network architecture
+        "h_size": [32, 32],  # Network hidden size
+        "c_size": [3, 32],  # CNN channel size
+        "k_size": [(1, 3, 3), (1, 3, 3)],  # CNN kernel size
+        "s_size": [2, 2],  # CNN stride size
+        "normalize": True,  # Normalize image from range [0,255] to [0,1]
     }
 
     # Define the initial hyperparameters
     INIT_HP = {
-        "POPULATION_SIZE": 4,
-        "ALGO": "MATD3",  # Algorithm
+        "POPULATION_SIZE": 6,
+        "ALGO": "MADDPG",  # Algorithm
         # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
         "CHANNELS_LAST": True,
-        "BATCH_SIZE": 32,  # Batch size
+        "BATCH_SIZE": 8,  # Batch size
         "LR": 0.01,  # Learning rate
         "GAMMA": 0.95,  # Discount factor
         "MEMORY_SIZE": 100000,  # Max memory buffer size
         "LEARN_STEP": 5,  # Learning frequency
         "TAU": 0.01,  # For soft update of target parameters
-        "POLICY_FREQ": 2,  # Policy frequnecy
     }
 
-
+    # Define the space invaders environment as a parallel environment
+    env = SM64_ENV(FRAME_SKIP=4,render_mode="forced")
+    if INIT_HP["CHANNELS_LAST"]:
+        # Environment processing for image based observations
+        # env = ss.frame_skip_v0(env, 4)
+        env = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+        env = ss.color_reduction_v0(env, mode="full")
+        # env = ss.resize_v1(env, x_size=84, y_size=84)
+        env = ss.frame_stack_v1(env, 4)
+    env.reset()
 
     # Configure the multi-agent algo input arguments
     try:
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         INIT_HP["MAX_ACTION"] = [env.action_space(agent).high for agent in env.agents]
         INIT_HP["MIN_ACTION"] = [env.action_space(agent).low for agent in env.agents]
 
-    # Not applicable to MPE environments, used when images are used for observations (Atari environments)
+    # Pre-process image dimensions for pytorch convolutional layers
     if INIT_HP["CHANNELS_LAST"]:
         state_dim = [
             (state_dim[2], state_dim[0], state_dim[1]) for state_dim in state_dim
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
     # Append number of agents and agent IDs to the initial hyperparameter dictionary
     INIT_HP["N_AGENTS"] = env.num_agents
-    INIT_HP["AGENT_IDS"] = env.agents
+    INIT_HP["AGENT_IDS"] = env.agents.copy()
 
     # Create a population ready for evolutionary hyper-parameter optimisation
     pop = initialPopulation(
@@ -126,15 +127,22 @@ if __name__ == "__main__":
             "batch_size",
         ],  # RL hyperparams selected for mutation
         mutation_sd=0.1,  # Mutation strength
-        agent_ids=INIT_HP["AGENT_IDS"],
-        arch=NET_CONFIG["arch"],
+        # Define search space for each hyperparameter
+        min_lr=0.0001,
+        max_lr=0.01,
+        min_learn_step=1,
+        max_learn_step=120,
+        min_batch_size=8,
+        max_batch_size=64,
+        agent_ids=INIT_HP["AGENT_IDS"],  # Agent IDs
+        arch=NET_CONFIG["arch"],  # MLP or CNN
         rand_seed=1,
         device=device,
     )
 
     # Define training loop parameters
-    max_episodes = 500  # Total episodes (default: 6000)
-    max_steps = 25  # Maximum steps to take in each episode
+    max_episodes = 6000  # Total episodes (default: 6000)
+    max_steps = 200  # Maximum steps to take in each episode
     epsilon = 1.0  # Starting epsilon value
     eps_end = 0.1  # Final epsilon value
     eps_decay = 0.995  # Epsilon decay
@@ -152,7 +160,6 @@ if __name__ == "__main__":
                     agent_id: np.moveaxis(np.expand_dims(s, 0), [-1], [-3])
                     for agent_id, s in state.items()
                 }
-            print(state["mario0"].shape)
             for _ in range(max_steps):
                 agent_mask = info["agent_mask"] if "agent_mask" in info.keys() else None
                 env_defined_actions = (
@@ -178,10 +185,9 @@ if __name__ == "__main__":
                 if INIT_HP["CHANNELS_LAST"]:
                     state = {agent_id: np.squeeze(s) for agent_id, s in state.items()}
                     next_state = {
-                        agent_id: np.moveaxis(ns, [-1], [-3])
+                        agent_id: np.squeeze(np.moveaxis(ns, [-1], [-3]))
                         for agent_id, ns in next_state.items()
                     }
-                
 
                 # Save experiences to replay buffer
                 memory.save2memory(state, cont_actions, reward, next_state, termination)
@@ -198,6 +204,7 @@ if __name__ == "__main__":
                         agent.batch_size
                     )  # Sample replay buffer
                     agent.learn(experiences)  # Learn according to agent's RL algorithm
+
 
                 # Update the state
                 if INIT_HP["CHANNELS_LAST"]:
@@ -242,8 +249,8 @@ if __name__ == "__main__":
             pop = mutations.mutation(pop)
 
     # Save the trained algorithm
-    path = "./models/MATD3"
-    filename = "MATD3_trained_agent.pt"
+    path = "./models/MADDPG"
+    filename = "sm64_MADDPG_trained_agent.pt"
     os.makedirs(path, exist_ok=True)
     save_path = os.path.join(path, filename)
     elite.saveCheckpoint(save_path)

@@ -46,7 +46,7 @@ class SM64_ENV(ParallelEnv):
         "name": "sm64",
     }
 
-    def __init__(self, FRAME_SKIP=1 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, N_RENDER_COLUMNS=5, render_mode="normal"):
+    def __init__(self, FRAME_SKIP=1 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, N_RENDER_COLUMNS=5, render_mode="forced"):
         self.render_mode = render_mode
         # angleDegrees, A, B, Z
         # if angleDegrees == "noStick" then there is no direction held
@@ -57,27 +57,27 @@ class SM64_ENV(ParallelEnv):
             # Jump
             make_action(0,True,False,False),
             # start longjump (crouch)
-            make_action(0,False,False,True),
+            # make_action(0,False,False,True),
             # Dive
-            make_action(0,False,True,False),
+            # make_action(0,False,True,False),
 
             # -----FORWARD RIGHT
             # None
             make_action(30,False,False,False),
             # Jump
-            make_action(30,True,False,False),
+            # make_action(30,True,False,False),
 
             # -----FORWARD LEFT
             # None
             make_action(-30,False,False,False),
             # Jump
-            make_action(-30,True,False,False),
+            # make_action(-30,True,False,False),
 
             # -----BACKWARDS
             # None
-            make_action(180,False,False,False),
+            # make_action(180,False,False,False),
             # Jump
-            make_action(180,True,False,False),
+            # make_action(180,True,False,False),
 
             # # ----- NO STICK (no direction held)
             # # None
@@ -87,7 +87,7 @@ class SM64_ENV(ParallelEnv):
         ]
         # this also needs to be changed in the c part (env/include/types.h) (and then compiled) to work. Maximum is 255 because of data types in c
         self.MAX_PLAYERS = 20
-        self.num_envs = self.MAX_PLAYERS
+        # self.num_envs = self.MAX_PLAYERS
         self.IMG_WIDTH = 128
         self.IMG_HEIGHT = 72
 
@@ -99,7 +99,7 @@ class SM64_ENV(ParallelEnv):
         self.N_RENDER_COLUMNS = N_RENDER_COLUMNS
 
         self.RENDER_WINDOW_WIDTH = self.IMG_WIDTH * self.N_RENDER_COLUMNS
-        self.RENDER_WINDOW_HEIGHT = self.IMG_HEIGHT * self.MAX_PLAYERS // self.N_RENDER_COLUMNS + 1
+        self.RENDER_WINDOW_HEIGHT = self.IMG_HEIGHT * ((self.MAX_PLAYERS // self.N_RENDER_COLUMNS) + 1)
 
         self.agents = [f"mario{k}" for k in range(self.MAX_PLAYERS) ]
         self.possible_agents = [f"mario{k}" for k in range(self.MAX_PLAYERS)]

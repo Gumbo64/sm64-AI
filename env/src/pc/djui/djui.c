@@ -23,7 +23,7 @@ static struct DjuiText* sDjuiLuaError = NULL;
 static u32 sDjuiLuaErrorTimeout = 0;
 bool gDjuiInMainMenu = true;
 // AISHIZ
-bool gDjuiDisabled = true;
+bool gDjuiDisabled = false;
 bool gDjuiRenderBehindHud = false;
 
 bool sDjuiRendered60fps = false;
@@ -120,7 +120,8 @@ void djui_render(void) {
     }
 
     djui_panel_update();
-    djui_popup_update();
+    // AISHIZ, commented out to turn off "x joined the game" popups that RUIN the AI
+    // djui_popup_update();
 
     djui_base_set_visible(&sDjuiPauseOptions->base, (sCurrPlayMode == PLAY_MODE_PAUSED));
     djui_base_set_visible(&sDjuiPauseOptions->base, (sCurrPlayMode == PLAY_MODE_PAUSED) && !gDjuiPanelPauseCreated);

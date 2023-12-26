@@ -97,3 +97,4 @@ coopnet_port 34197
 coopnet_password 
 coopnet_dest 0
 fade_distant_sounds true
+enable-mod: compass

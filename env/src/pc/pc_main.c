@@ -94,6 +94,7 @@ f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
 struct gameStateStruct* gGameStateStructs[MAX_PLAYERS] = { NULL };
 bool gRenderingToggle = FALSE;
+bool gHideAndSeekMode = FALSE;
 bool makeOtherPlayersInvisible = FALSE;
 
 // 1 is true, 0 is false
@@ -312,6 +313,12 @@ void inthand(UNUSED int signum) {
 void cam_focus_player(int playerIndex){
     gNoCamUpdate = TRUE;
     Vec3f campos;
+    gSmluaCameraIndex = playerIndex;
+    if (gHideAndSeekMode){
+        gSmluaCompassTargetIndex = ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS;
+    }else{
+        gSmluaCompassTargetIndex = 0;
+    }
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
 
     vec3f_set_dist_and_angle(campos, campos, 500, gMarioStates[playerIndex].faceAngle[0] + DEGREES(180), gMarioStates[playerIndex].faceAngle[1]);
@@ -326,13 +333,14 @@ void cam_focus_player(int playerIndex){
     gHudDisplay.lives = gGlobalTimer;
 }
 
-#define MAKE_OTHERS_INVISIBLE 1
+
 void force_make_frame(int playerIndex) {
 
     cam_focus_player(playerIndex);
     if (makeOtherPlayersInvisible){
         for (int i=0; i<MAX_PLAYERS;i++){
-            if (i == playerIndex){
+            // if you are rendering yourself OR you are rendering your chaser/evader
+            if (i == playerIndex || ( gHideAndSeekMode && i == gSmluaCompassTargetIndex )  ){
                 gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
             }else{
                 gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
@@ -459,55 +467,30 @@ void update_controllers(struct inputStruct* inputs){
 
 void reset_script(void);
 void reset(void){
-    // init_level();
-    // init_level();
-    // thread5_game_loop(NULL);
-    // load_mario_area();
-    // warp to LEVEL_BOB
-    // reset_script();
     dynos_warp_to_level(LEVEL_BOB, 1, 0);
     for (int i=0; i<MAX_PLAYERS;i++){
         gMarioStates[i].health = 0x880;
         gMarioStates[i].numLives = 4;
     }
-
-    // init_mario();
-    // makemariolol();
-    // struct NetworkPlayer* npp = &gNetworkPlayers[0];
-    // network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
-    // npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex
-    // 1, 0, 9, 1
-    // int level_num = 9;
-    // int area_index = 1;
-
-    // level_trigger_warp(gMarioState, 1);
 }
 
 struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
-    // printf("step_pixels\n");
-    struct inputStruct input = inputs[MAX_PLAYERS-1];
-    // printf("%d %d %d %d %d\n", input.stickX,input.stickY,input.buttonInput[0],input.buttonInput[1],input.buttonInput[2]);
-    
+    // PHYSICS LOOP (for frame skipping)
     for(int i = 0; i<n_steps; i++){
-        // printf("produce\n");
         update_controllers(inputs);
-        // printf("produce2");
         produce_one_frame();
-        // printf("frame\n");
         // player 0' image gets overwritten without this (yes, twice) and also it updates the animations
         force_make_frame_support();
         force_make_frame_support();
     }
 
+    // RENDERING LOOP (for each player)
     for(int i = 0; i<MAX_PLAYERS; i++){
-        // printf("force make\n");
         force_make_frame(i);
-
         if (gGameStateStructs[i]){
             if (gGameStateStructs[i]->pixels) free(gGameStateStructs[i]->pixels);
             free(gGameStateStructs[i]);
         }
-        // printf("get pixels\n");
         gGameStateStructs[i] = gfx_get_pixels();
         // to get the true health, you must do the >>8
         gGameStateStructs[i]->health = (gMarioStates[i].health >> 8);
@@ -515,10 +498,15 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         gGameStateStructs[i]->posX = gMarioStates[i].pos[0];
         gGameStateStructs[i]->posY = gMarioStates[i].pos[1];
         gGameStateStructs[i]->posZ = gMarioStates[i].pos[2];
-        
+
+        gGameStateStructs[i]->velX = gMarioStates[i].vel[0];
+        gGameStateStructs[i]->velY = gMarioStates[i].vel[1];
+        gGameStateStructs[i]->velZ = gMarioStates[i].vel[2];
+
+        // the opposite of DEGREES()
         
     }
-    // printf("end of step_pixels\n");
+
     return gGameStateStructs;
 }
 
@@ -528,25 +516,21 @@ void makemariolol(){
     for (u32 i = 1; i < MAX_PLAYERS; i++) {
         struct NetworkPlayer* npi = &gNetworkPlayers[i];
         struct NetworkPlayer* npp = &gNetworkPlayers[0];
-        // if ((!npi->connected) || npi == gNetworkPlayerLocal) { continue; }
-        // npi->currPositionValid = false;
-        // memset(npi, 0, sizeof(struct NetworkPlayer));
-        // npi->connected = false;
-        // npi->clear_id(i);
         network_player_connected(NPT_LOCAL, i, 0, &DEFAULT_MARIO_PALETTE, "Botfam");
-        // network_player_update_course_level(np, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
         network_player_update_course_level(npi, npp->currCourseNum, npp->currActNum, npp->currLevelNum, npp->currAreaIndex);
     }
     
 }
-void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type) {
+void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode) {
     makeOtherPlayersInvisible = invisible;
+    gHideAndSeekMode = seekMode;
+    gDjuiDisabled = !seekMode;
+
     // Ensure it is a server, avoid CLI options
     gCLIOpts.NetworkPort = 7777;
     gCLIOpts.Network = NT_SERVER;
     gCLIOpts.FullScreen = 1;
     // gCLIOpts
-
     const char *gamedir = relGameDir;
     const char *userpath = relUserPath;
     fs_init(sys_ropaths, gamedir, userpath);
@@ -557,6 +541,9 @@ void main_func(char *relGameDir, char *relUserPath, bool invisible, int collisio
 
     dynos_packs_init();
     mods_init();
+    mods_enable("compass");
+
+    
 
     // load config
     configfile_load();

@@ -3,3 +3,4 @@ models
 wandb
 runs
 rayshit
+__pycache__

@@ -38,6 +38,10 @@ struct gameStateStruct {
     float posX;
     float posY;
     float posZ;
+
+    float velX;
+    float velY;
+    float velZ;
 };
 
 struct gameStateStruct* gfx_get_pixels(void);

@@ -15,6 +15,7 @@
 #include "include/macro_presets.h"
 #include "utils/smlua_anim_utils.h"
 
+
 bool smlua_functions_valid_param_count(lua_State* L, int expected) {
     int top = lua_gettop(L);
     if (top != expected) {
@@ -722,6 +723,19 @@ int smlua_func_smlua_anim_util_register_animation(lua_State* L) {
     return 1;
 }
 
+int gSmluaCameraIndex = 0;
+int gSmluaCompassTargetIndex = 1;
+int smlua_func_get_current_camera_index(lua_State* L){
+    if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
+    lua_pushinteger(L, gSmluaCameraIndex);
+    return 1;
+}
+int smlua_func_get_current_compass_target_index(lua_State* L){
+    if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
+    lua_pushinteger(L, gSmluaCompassTargetIndex);
+    return 1;
+}
+
   //////////
  // bind //
 //////////
@@ -747,4 +761,7 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "djui_hud_render_texture_tile_interpolated", smlua_func_djui_hud_render_texture_tile_interpolated);
     smlua_bind_function(L, "level_script_parse", smlua_func_level_script_parse);
     smlua_bind_function(L, "smlua_anim_util_register_animation", smlua_func_smlua_anim_util_register_animation);
+
+    smlua_bind_function(L, "get_current_camera_index", smlua_func_get_current_camera_index);
+    smlua_bind_function(L, "get_current_compass_target_index", smlua_func_get_current_compass_target_index);
 }

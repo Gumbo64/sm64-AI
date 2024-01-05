@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "intro_geo.h": "c"
+        "intro_geo.h": "c",
+        "surface_collision.h": "c"
     }
 }

@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
     # if you want to load an agent
     agentHider.load_state_dict(torch.load(f"agentHider.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"agentSeeker.pt", map_location=device))
+    agentSeeker.load_state_dict(torch.load(f"agentHider.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)

@@ -8,4 +8,4 @@ cd env && make -j16
 ```
 pip install -r requirements.txt
 ``` 
-3. Run sm64_env_random_action_text.py to test it out
+3. Run sm64_test_tag_model.py to test a pre-trained AI or sm64_env_random_action_text.py to test the environment

@@ -16,6 +16,9 @@ extern struct GfxDimensions gfx_current_dimensions;
 extern Vec3f gLightingDir;
 extern Color gLightingColor;
 
+extern int gImgWidth;
+extern int gImgHeight;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

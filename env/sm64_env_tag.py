@@ -8,10 +8,12 @@ def smallest_angle_between(angle1, angle2):
     return angle
 
 class SM64_ENV_TAG(SM64_ENV):
-    def __init__(self, FRAME_SKIP=1, MAKE_OTHER_PLAYERS_INVISIBLE=True, PLAYER_COLLISION_TYPE=0, AUTO_RESET=False, N_RENDER_COLUMNS=5, render_mode="forced", HIDE_AND_SEEK_MODE=True):
+    def __init__(self, FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True, PLAYER_COLLISION_TYPE=0, AUTO_RESET=False, N_RENDER_COLUMNS=2, render_mode="forced", HIDE_AND_SEEK_MODE=True, IMG_WIDTH=128, IMG_HEIGHT=72):
+        # placeholder
         self.prev_distances = [0 for _ in range(2000)]
+        self.prev_angle_differences = [0 for _ in range(2000)]
 
-        super(SM64_ENV_TAG,self).__init__(FRAME_SKIP, MAKE_OTHER_PLAYERS_INVISIBLE, PLAYER_COLLISION_TYPE, AUTO_RESET, N_RENDER_COLUMNS, render_mode, HIDE_AND_SEEK_MODE)
+        super(SM64_ENV_TAG,self).__init__(FRAME_SKIP, MAKE_OTHER_PLAYERS_INVISIBLE, PLAYER_COLLISION_TYPE, AUTO_RESET, N_RENDER_COLUMNS, render_mode, HIDE_AND_SEEK_MODE, IMG_WIDTH, IMG_HEIGHT)
         self.agents = [f"hider_{k}" if k < self.MAX_PLAYERS//2 else f"seeker_{k-self.MAX_PLAYERS//2}" for k in range(self.MAX_PLAYERS) ]
         self.possible_agents = self.agents
 
@@ -20,7 +22,11 @@ class SM64_ENV_TAG(SM64_ENV):
 
     def reset(self,seed=None,options=None):
         self.prev_distances = [0 for _ in range(self.MAX_PLAYERS//2)]
+        self.prev_angle_differences = [0 for _ in range(self.MAX_PLAYERS)]
         return super().reset(seed=None,options=None)
+        
+    def render(self):
+        return super().render(mode="tag")
 
     
     def calc_rewards(self, gameStatePointers):
@@ -41,29 +47,29 @@ class SM64_ENV_TAG(SM64_ENV):
             # for seekers, its almost always good to be facing the hider for chasing them but hiders might want to turn around and look at the seeker to see if they are being chased so idk
             hiderAngle = math.atan2(hiderState.velZ, hiderState.velX)
             hiderAngleDifference = smallest_angle_between(angleBetweenPlayers, hiderAngle)
-            # reward is from 0 to 1, + reward for increasing the angle
-            hiderAngleReward = hiderAngleDifference / math.pi 
+            hiderAngleDifference_delta = hiderAngleDifference - self.prev_angle_differences[hiderIndex]
 
             angleBetweenPlayers = math.atan2(hiderPos[2] - seekerPos[2], hiderPos[0] - seekerPos[0]) 
             seekerAngle = math.atan2(seekerState.velZ, seekerState.velX)
             seekerAngleDifference = smallest_angle_between(angleBetweenPlayers, seekerAngle)
-            # reward is from 0 to 1, + reward for decreasing the angle
-            seekerAnglePenalty = seekerAngleDifference / math.pi 
+            seekerAngleDifference_delta = seekerAngleDifference - self.prev_angle_differences[seekerIndex]
 
             # nan is usually caused by the two players being in the same position
             # if you don't check isnan, then nan eventually gets added to the neural net's weights and they all become nan, killing the network
             
-            if math.isnan(seekerAnglePenalty):
-                seekerAnglePenalty = 0
-            if math.isnan(hiderAngleReward):
-                hiderAngleReward = 1
+            if math.isnan(seekerAngleDifference_delta):
+                seekerAngleDifference_delta = 0
+            if math.isnan(hiderAngleDifference_delta):
+                hiderAngleDifference_delta = 0
 
             d = math.dist(seekerPos, hiderPos)
             d_delta = d - self.prev_distances[hiderIndex]   
 
-            self.rewards[hiderIndex] = d_delta/250 + hiderAngleReward / 5
-            self.rewards[seekerIndex] = - d_delta/250 - seekerAnglePenalty / 2
+            self.rewards[hiderIndex] = d_delta/250 + (hiderAngleDifference_delta/math.pi) / 5
+            self.rewards[seekerIndex] = - d_delta/250 - (seekerAngleDifference_delta/math.pi) / 2
             self.prev_distances[hiderIndex] = d
+            self.prev_angle_differences[hiderIndex] = hiderAngleDifference
+            self.prev_angle_differences[seekerIndex] = seekerAngleDifference
             # print(self.rewards[hiderIndex])
 
             # print(self.rewards[hiderIndex], self.rewards[seekerIndex], hiderAngleReward, seekerAnglePenalty)

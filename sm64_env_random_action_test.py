@@ -8,7 +8,7 @@ import supersuit as ss
 
 # Can test either of these
 # env = SM64_ENV(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=False)
-env = SM64_ENV_TAG(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True)
+env = SM64_ENV_TAG(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=False)
 
 env = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
 env = ss.color_reduction_v0(env, mode="full")
@@ -24,7 +24,7 @@ for idx_epi in trange(INIT_HP["MAX_EPISODES"]):
         actions = {agent: env.action_space(agent).sample() for agent in env.agents}
         # actions = {"mario0":4,"mario1":9}
         observations, rewards, terminations, truncations, infos = env.step(actions)
-        # print(rewards)
+        print(rewards)
         # print(observations["mario0"].shape)
         env.render()
         if not env.agents:

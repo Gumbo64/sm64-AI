@@ -72,7 +72,6 @@
 #include "engine/surface_collision.h"
 #include "game/camera.h"
 #include "game/level_update.h"
-#include "pc/gfx/gfx_pc.h"
 #include <sys/time.h>
 
 OSMesg D_80339BEC;
@@ -521,7 +520,11 @@ void makemariolol(){
     }
     
 }
-void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode) {
+extern int gImgHeight;
+extern int gImgWidth;
+void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode, int renderWidth,int renderHeight) {
+    gImgHeight = renderHeight;
+    gImgWidth = renderWidth;
     makeOtherPlayersInvisible = invisible;
     gHideAndSeekMode = seekMode;
     gDjuiDisabled = !seekMode;

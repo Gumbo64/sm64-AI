@@ -56,8 +56,9 @@ class SM64_ENV(ParallelEnv):
         "name": "sm64",
     }
 
-    def __init__(self, FRAME_SKIP=1 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False,
-                 N_RENDER_COLUMNS=5, render_mode="forced", HIDE_AND_SEEK_MODE=False):
+    def __init__(self, FRAME_SKIP=4 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False,
+                 N_RENDER_COLUMNS=5, render_mode="forced", HIDE_AND_SEEK_MODE=False,
+                 IMG_WIDTH=128, IMG_HEIGHT=72):
         self.render_mode = render_mode
         # angleDegrees, A, B, Z
         # if angleDegrees == "noStick" then there is no direction held
@@ -101,8 +102,8 @@ class SM64_ENV(ParallelEnv):
         # this also needs to be changed in the c part (env/include/types.h) (and then compiled) to work. Maximum is 255 because of data types in c
         self.MAX_PLAYERS = 20
         # self.num_envs = self.MAX_PLAYERS
-        self.IMG_WIDTH = 128
-        self.IMG_HEIGHT = 72
+        self.IMG_WIDTH = IMG_WIDTH
+        self.IMG_HEIGHT = IMG_HEIGHT
 
         self.N_ACTIONS = len(self.action_book)
 
@@ -134,9 +135,9 @@ class SM64_ENV(ParallelEnv):
         dll.step_pixels.argtypes = [INPUT_STRUCT * self.MAX_PLAYERS , ctypes.c_int]
         dll.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(GAME_STATE_STRUCT))
         
-        dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p, ctypes.c_bool,ctypes.c_int,ctypes.c_bool]
+        dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p, ctypes.c_bool,ctypes.c_int,ctypes.c_bool,ctypes.c_int,ctypes.c_int]
 
-        dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'),MAKE_OTHER_PLAYERS_INVISIBLE,PLAYER_COLLISION_TYPE, HIDE_AND_SEEK_MODE)
+        dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'),MAKE_OTHER_PLAYERS_INVISIBLE,PLAYER_COLLISION_TYPE, HIDE_AND_SEEK_MODE,IMG_WIDTH,IMG_HEIGHT)
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
         for i in range(10):
             self.step(actions)
@@ -151,7 +152,7 @@ class SM64_ENV(ParallelEnv):
         # reset the image stacks
         self.np_imgs = [np.zeros((self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
         
-        for i in range(4):
+        for i in range(10):
             actions = {agent: self.action_space(agent).sample() for agent in self.agents}
             observations, rewards, terminations, truncations, infos = self.step(actions)
 
@@ -187,11 +188,19 @@ class SM64_ENV(ParallelEnv):
             truncations  = {a: False for a in self.agents}
         return observations, rewards, terminations, truncations, infos
     
-    def render(self):
+    def render(self, mode="default"):
         imgs = [0 for i in range(self.MAX_PLAYERS)]
         for i in range(self.MAX_PLAYERS):
             # [0] gives newest image
             imgs[i] = Image.fromarray(self.np_imgs[i],'RGB')
+
+        if mode == "tag":
+            # put hiders and seekers together
+            tmp = [0 for i in range(self.MAX_PLAYERS)]
+            tmp[::2] = imgs[0:self.MAX_PLAYERS//2] 
+            tmp[1::2] = imgs[self.MAX_PLAYERS//2:]
+            imgs = tmp
+
 
 
         window.fill((0, 0, 0))

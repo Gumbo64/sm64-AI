@@ -195,8 +195,8 @@ if __name__ == "__main__":
     optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # if you want to load an agent
-    agentHider.load_state_dict(torch.load(f"agentHider.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"agentHider.pt", map_location=device))
+    agentHider.load_state_dict(torch.load(f"trained_model/agentHider.pt", map_location=device))
+    agentSeeker.load_state_dict(torch.load(f"trained_model/agentHider.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)

@@ -81,12 +81,10 @@ def parse_args():
     # fmt: on
     return args
 
-
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
-
 
 class Agent(nn.Module):
     def __init__(self, envs):
@@ -138,9 +136,10 @@ class Agent(nn.Module):
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
 
 
+
 if __name__ == "__main__":
         # env setup
-    env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=5)
+    env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4)
     envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
 
@@ -195,8 +194,8 @@ if __name__ == "__main__":
     optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # if you want to load an agent
-    agentHider.load_state_dict(torch.load(f"trained_model/agentHider.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"trained_model/agentHider.pt", map_location=device))
+    agentHider.load_state_dict(torch.load(f"trained_models/agentHider.pt", map_location=device))
+    agentSeeker.load_state_dict(torch.load(f"trained_models/agentHider.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)

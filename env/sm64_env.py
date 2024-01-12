@@ -45,6 +45,10 @@ def make_action_struct(a):
     inputStruct.buttonInput = (ctypes.c_bool * 3)(A,B,Z)
     return inputStruct
 
+
+# window and dll outside of the class isn't ideal, but pettingzoo wrappers required the env to be pickleable for some reason
+
+
 window = pygame.display.set_mode((100,100))
 
 dirpath = os.path.dirname(__file__)

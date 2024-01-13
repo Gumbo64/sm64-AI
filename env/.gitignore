@@ -107,3 +107,5 @@ todo-old.txt
 # build fails without these and sm64ex-coop just had it in the repo anyway so whatever
 !bowser_key_left.rgba16.png
 !bowser_key_right.rgba16.png
+!wing_1.rgba16.png
+!wing_2.rgba16.png

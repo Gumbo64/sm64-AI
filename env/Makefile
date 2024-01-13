@@ -97,7 +97,7 @@ WINDOWS_BUILD ?= 0
 WINDOWS_AUTO_BUILDER ?= 0
 
 # Setup extra cflags
-EXTRA_CFLAGS ?= 
+EXTRA_CFLAGS ?=
 EXTRA_CPP_FLAGS ?=
 EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs -fPIC -shared
 
@@ -270,6 +270,7 @@ endif
 ifeq ($(TARGET_RPI),1)
   $(info Compiling for Raspberry Pi)
   DISCORD_SDK := 0
+  COOPNET := 0
 	machine = $(shell sh -c 'uname -m 2>/dev/null || echo unknown')
 
     # Raspberry Pi B+, Zero, etc
@@ -347,8 +348,9 @@ endif
 
 ifeq ($(OSX_BUILD),1) # Modify GFX & SDL2 for OSX GL
      DEFINES += OSX_BUILD=1
+else ifeq ($(shell uname -m),arm64)
+  DISCORD_SDK := 0 
 endif
-
 # Check backends
 
 ifneq (,$(filter $(RENDER_API),D3D11 D3D12))
@@ -410,11 +412,7 @@ ifeq ($(OSX_BUILD),0)
 	USE_APP := 0
 endif
 
-ifeq ($(USE_APP),0)
 TARGET_STRING := sm64
-else
-TARGET_STRING := sm64
-endif
 # If non-default settings were chosen, disable COMPARE
 ifeq ($(filter $(TARGET_STRING), sm64.jp.f3d_old sm64.us.f3d_old sm64.eu.f3d_new sm64.sh.f3d_new),)
   COMPARE := 0
@@ -700,7 +698,7 @@ else ifeq ($(COMPILER),gcc)
   CC      := $(CROSS)gcc
   CXX     := $(CROSS)g++
   ifeq ($(OSX_BUILD),0)
-	EXTRA_CFLAGS += -Wno-unused-result -Wno-format-truncation 
+	EXTRA_CFLAGS += -Wno-unused-result -Wno-format-truncation
   else
 	EXTRA_CFLAGS += -Wno-unused-result
   endif
@@ -811,7 +809,7 @@ else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
   else ifeq ($(TARGET_RPI),1)
     BACKEND_LDFLAGS += -lGLESv2
   else ifeq ($(OSX_BUILD),1)
-    BACKEND_LDFLAGS += -framework OpenGL `pkg-config --libs glew`
+    BACKEND_LDFLAGS += -framework OpenGL `pkg-config --libs glew` -ld_classic
     EXTRA_CPP_FLAGS += -stdlib=libc++ -std=c++0x
   else
     BACKEND_LDFLAGS += -lGL
@@ -904,7 +902,7 @@ ifeq ($(TARGET_N64),1)
 endif
 
 ifeq ($(WINDOWS_BUILD),1)
-  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static 
+  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static
   ifeq ($(CROSS),)
     LDFLAGS += -no-pie
   endif
@@ -953,7 +951,7 @@ endif
 # Coop specific libraries
 
 # Zlib
-LDFLAGS += -lz 
+LDFLAGS += -lz
 
 # im the goat
 LDFLAGS += -shared -lm
@@ -966,7 +964,11 @@ ifeq ($(WINDOWS_BUILD),1)
     LDFLAGS += -Llib/lua/win64 -l:liblua53.a
   endif
 else ifeq ($(OSX_BUILD),1)
-  LDFLAGS += -L./lib/lua/mac/ -l lua53
+  ifeq ($(shell uname -m),arm64)
+    LDFLAGS += -L./lib/lua/mac_arm/ -l lua53
+  else
+    LDFLAGS += -L./lib/lua/mac_intel/ -l lua53
+  endif
 else ifeq ($(TARGET_RPI),1)
 	ifneq (,$(findstring aarch64,$(machine)))
     LDFLAGS += -Llib/lua/linux -l:liblua53-arm64.a
@@ -987,9 +989,15 @@ ifeq ($(COOPNET),1)
       LDFLAGS += -Llib/coopnet/win64 -l:libcoopnet.a -l:libjuice.a -lbcrypt -lws2_32 -liphlpapi
     endif
   else ifeq ($(OSX_BUILD),1)
-    LDFLAGS += -Wl,-rpath,@loader_path -L./lib/coopnet/mac/ -l coopnet
-    COOPNET_LIBS += ./lib/coopnet/mac/libcoopnet.dylib
-    COOPNET_LIBS += ./lib/coopnet/mac/libjuice.1.2.2.dylib
+    ifeq ($(shell uname -m),arm64)
+      LDFLAGS += -Wl,-rpath,@loader_path -L./lib/coopnet/mac_arm/ -l coopnet
+      COOPNET_LIBS += ./lib/coopnet/mac_arm/libcoopnet.dylib
+      COOPNET_LIBS += ./lib/coopnet/mac_arm/libjuice.1.2.2.dylib
+    else
+      LDFLAGS += -Wl,-rpath,@loader_path -L./lib/coopnet/mac_intel/ -l coopnet
+      COOPNET_LIBS += ./lib/coopnet/mac_intel/libcoopnet.dylib
+      COOPNET_LIBS += ./lib/coopnet/mac_intel/libjuice.1.2.2.dylib
+    endif
   else ifeq ($(TARGET_RPI),1)
     ifneq (,$(findstring aarch64,$(machine)))
       LDFLAGS += -Llib/coopnet/linux -l:libcoopnet-arm64.a -l:libjuice.a
@@ -1314,7 +1322,7 @@ ifeq ($(VERSION),eu)
   $(BUILD_DIR)/src/game/level_info.o: $(BUILD_DIR)/text/us/define_courses.inc.c
   $(BUILD_DIR)/src/game/level_info.o: $(BUILD_DIR)/text/de/define_courses.inc.c
   $(BUILD_DIR)/src/game/level_info.o: $(BUILD_DIR)/text/fr/define_courses.inc.c
-  
+
   O_FILES += $(BUILD_DIR)/bin/eu/translation_en.o $(BUILD_DIR)/bin/eu/translation_de.o $(BUILD_DIR)/bin/eu/translation_fr.o
 else
   ifeq ($(VERSION),sh)

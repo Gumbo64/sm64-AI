@@ -101,6 +101,9 @@ todo.txt
 todo-old.txt
 
 # custom sounds
-sound/samples/sfx_custom_luigi*/*.aiff
-sound/samples/sfx_custom_wario*/*.aiff
+!sound/samples/sfx_custom_luigi*/*.aiff
+!sound/samples/sfx_custom_wario*/*.aiff
 
+# build fails without these and sm64ex-coop just had it in the repo anyway so whatever
+!bowser_key_left.rgba16.png
+!bowser_key_right.rgba16.png

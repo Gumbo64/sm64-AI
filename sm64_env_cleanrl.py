@@ -91,22 +91,32 @@ class Agent(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
             # 4 frame stack so that is the first number
-            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
-            nn.ReLU(),
-            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
-            nn.ReLU(),
-            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
-            nn.ReLU(),
+            layer_init(nn.Conv2d(4, 128, 8, stride=2)),
+            nn.MaxPool2d(kernel_size=4, stride=2),
+            nn.LeakyReLU(),
+            layer_init(nn.Conv2d(128, 64, 4, stride=2)),
+            nn.LeakyReLU(),
             nn.Flatten(),
 
-            # 3840 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
-            layer_init(nn.Linear(3840, 1024)),
-            nn.ReLU(),
-            layer_init(nn.Linear(1024, 1024)),
-            nn.ReLU(),
+            # 4992 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
+            layer_init(nn.Linear(4992, 2048)),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(2048, 2048)),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(2048, 1024)),
+            nn.LeakyReLU(),
         )
-        self.actor = layer_init(nn.Linear(1024, envs.single_action_space.n), std=0.01)
-        self.critic = layer_init(nn.Linear(1024, 1), std=1)
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(1024,512), std=0.01),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
+        )
+        
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(1024,512), std=0.01),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(512, 1), std=1)
+        )
 
     def get_value(self, x):
         x = x.clone()
@@ -154,7 +164,8 @@ if __name__ == "__main__":
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"runs/{run_name}")
+    # writer = SummaryWriter(f"runs/{run_name}")
+    writer = SummaryWriter(wandb.run.dir)
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),

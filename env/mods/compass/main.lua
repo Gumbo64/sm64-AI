@@ -1,13 +1,9 @@
 -- MOD BY squishy6094 on sm64ex-coop discord
 
 -- name: Compass
--- description: Compass (HUD Element)\n\nA silly little novelty made as a Not-so-QOL Feature based off of Super Mario Odyessy's Compass. Feel free to use this for whatever projects you may need it for! :>\n\nMade by: \\#005500\\Squishy 6094
+-- description: 
 -- incompatible: compass
 
-
--- TODO
--- simplify compass textures
--- get the current player being rendered from the C code
 
 
 function s16(num)
@@ -101,3 +97,6 @@ function compass_render()
 end
 
 hook_event(HOOK_ON_HUD_RENDER, compass_render)
+
+-- dialog eater
+hook_event(HOOK_ON_DIALOG, function () return false end)

@@ -96,8 +96,9 @@ WINDOWS_BUILD ?= 0
 
 WINDOWS_AUTO_BUILDER ?= 0
 
+MAX_PLAYERS ?= 20
 # Setup extra cflags
-EXTRA_CFLAGS ?=
+EXTRA_CFLAGS ?= -DMAX_PLAYERS=$(MAX_PLAYERS)
 EXTRA_CPP_FLAGS ?=
 EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs -fPIC -shared
 

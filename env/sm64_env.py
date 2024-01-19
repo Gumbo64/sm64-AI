@@ -60,52 +60,31 @@ class SM64_ENV(ParallelEnv):
         "name": "sm64",
     }
 
-    def __init__(self, FRAME_SKIP=4 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False,
+    def __init__(self, FRAME_SKIP=4 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False, ACTION_BOOK=[],
                  N_RENDER_COLUMNS=5, render_mode="forced", HIDE_AND_SEEK_MODE=False,
                  IMG_WIDTH=128, IMG_HEIGHT=72):
         self.render_mode = render_mode
-        # angleDegrees, A, B, Z
+
         # if angleDegrees == "noStick" then there is no direction held
-        self.action_book = [
-            # -----FORWARD
-            # None
-            [0,False,False,False],
-            # Jump
-            [0,True,False,False],
-            # start longjump (crouch)
-            # [0,False,False,True],
-            # Dive
-            # [0,False,True,False],
+        # ie ["noStick",False,False,False] does nothing
+        if ACTION_BOOK != []:
+            self.action_book = ACTION_BOOK
+        else:
+            self.action_book = [
+                # angleDegrees, A, B, Z
+                # -----FORWARD
+                [0,False,False,False],
+                [0,True,False,False],
+                # -----FORWARD RIGHT
+                [30,False,False,False],
+                # -----FORWARD LEFT
+                [-30,False,False,False],
+            ]
 
-            # -----FORWARD RIGHT
-            # None
-            [30,False,False,False],
-            # [10,False,False,False],
-            # Jump
-            # [30,True,False,False],
+        # MAX_PLAYERS is decided when compiling
+        dll.max_players_reminder.restype = ctypes.c_int
+        self.MAX_PLAYERS = dll.max_players_reminder()
 
-            # -----FORWARD LEFT
-            # None
-            [-30,False,False,False],
-            # [-10,False,False,False],
-            # Jump
-            # [-30,True,False,False],
-
-            # -----BACKWARDS
-            # None
-            # [180,False,False,False],
-            # Jump
-            # [180,True,False,False],
-
-            # # ----- NO STICK (no direction held)
-            # # None
-            # ["noStick",False,False,False],
-            # # Groundpound
-            # ["noStick",False,False,True],
-        ]
-        # this also needs to be changed in the c part (env/include/types.h) (and then compiled) to work. Maximum is 255 because of data types in c
-        self.MAX_PLAYERS = 20
-        # self.num_envs = self.MAX_PLAYERS
         self.IMG_WIDTH = IMG_WIDTH
         self.IMG_HEIGHT = IMG_HEIGHT
 

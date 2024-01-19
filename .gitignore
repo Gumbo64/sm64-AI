@@ -4,3 +4,5 @@ wandb
 runs
 rayshit
 __pycache__
+trained_models/agentHiderXL.pt
+trained_models/agentCuriosity.pt

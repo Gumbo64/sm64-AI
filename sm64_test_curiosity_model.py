@@ -1,16 +1,19 @@
-from env.sm64_env import SM64_ENV
-from env.sm64_env_tag import SM64_ENV_TAG
+from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import trange
 import supersuit as ss
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.distributions.categorical import Categorical
 import numpy as np
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
+
 
 class Agent(nn.Module):
     def __init__(self, envs):
@@ -26,6 +29,8 @@ class Agent(nn.Module):
 
             # 4992 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
             layer_init(nn.Linear(4992, 2048)),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(2048, 2048)),
             nn.LeakyReLU(),
             layer_init(nn.Linear(2048, 1024)),
             nn.LeakyReLU(),
@@ -52,30 +57,13 @@ class Agent(nn.Module):
         x[:, :, :, [0, 1, 2, 3]] /= 255.0
         hidden = self.network(x.permute((0, 3, 1, 2)))
         logits = self.actor(hidden)
-
         probs = Categorical(logits=logits)
-
-        # probs = Categorical(logits=logits)
-        
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
-
-
-# env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, IMG_WIDTH=480, IMG_HEIGHT=270)
     
-ACTION_BOOK = [
-    # angleDegrees, A, B, Z
-    # -----FORWARD
-    [0,False,False,False],
-    [0,True,False,False],
-    # -----FORWARD RIGHT
-    [30,False,False,False],
-    # -----FORWARD LEFT
-    [-30,False,False,False],
-]
-
-env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+# env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, IMG_WIDTH=480, IMG_HEIGHT=270)
+env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4)
 envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
 envs = ss.color_reduction_v0(envs, mode="full")
 
@@ -90,27 +78,23 @@ envs.is_vector_env = True
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-agentHider = Agent(envs).to(device)
-agentHider.load_state_dict(torch.load(f"trained_models/agentHider.pt", map_location=device))
+agent = Agent(envs).to(device)
+agent.load_state_dict(torch.load(f"trained_models/agentCuriosity.pt", map_location=device))
 
-agentSeeker = Agent(envs).to(device)
-agentSeeker.load_state_dict(torch.load(f"trained_models/agentSeeker.pt", map_location=device))
 
 
 INIT_HP = {
     "MAX_EPISODES": 20,
     "MAX_EPISODE_LENGTH": 200,
 }
-H_S_SPLIT = env.MAX_PLAYERS//2
 
 for idx_epi in trange(INIT_HP["MAX_EPISODES"]):
     observations, infos = envs.reset()
     for i in range(INIT_HP["MAX_EPISODE_LENGTH"]):
         
         obs_tensor = torch.Tensor(observations).to(device)
-        hider_results = agentHider.get_action_and_value(obs_tensor[:H_S_SPLIT])
-        seeker_results = agentSeeker.get_action_and_value(obs_tensor[H_S_SPLIT:])
-        action, logprob, _, value = [torch.cat((hider_results[i], seeker_results[i])) for i in range(4)]
+        results = agent.get_action_and_value(obs_tensor)
+        action, logprob, _, value = results
 
         observations, rewards, terminations, truncations, infos = envs.step(action.cpu().numpy())
     

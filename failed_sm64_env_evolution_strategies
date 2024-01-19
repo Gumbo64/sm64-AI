@@ -24,7 +24,7 @@ wandb.init(
     monitor_gym=True,
     save_code=True,
 )
-writer = SummaryWriter(f"runs/{run_name}")
+writer = SummaryWriter(wandb.run.dir)
 
 torch.autograd.set_grad_enabled(False)
 

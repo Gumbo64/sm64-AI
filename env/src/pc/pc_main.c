@@ -671,6 +671,11 @@ void main_func(char *relGameDir, char *relUserPath, bool invisible, int collisio
 //     return 0;
 // }
 
+// for python
+int max_players_reminder(void){
+    return MAX_PLAYERS;
+}
+
 
 
 

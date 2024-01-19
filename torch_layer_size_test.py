@@ -14,7 +14,8 @@ network = nn.Sequential(
     nn.LeakyReLU(),
     layer_init(nn.Conv2d(256, 128, 4, stride=2)),
     nn.LeakyReLU(),
-    nn.Flatten(),
+    layer_init(nn.Conv2d(128, 128, 2, stride=1)),
+    # nn.Flatten(),
 
 
 

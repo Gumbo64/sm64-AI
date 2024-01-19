@@ -15,7 +15,7 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-from env.sm64_env_tag import SM64_ENV_TAG
+from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import tqdm
 
 def parse_args():
@@ -47,7 +47,7 @@ def parse_args():
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=100,
+    parser.add_argument("--num-steps", type=int, default=80,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -65,7 +65,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.06,
+    parser.add_argument("--ent-coef", type=float, default=0.01,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=0.5,
         help="coefficient of the value function")
@@ -74,12 +74,11 @@ def parse_args():
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
     args = parser.parse_args()
-
-    # we split batches across 2 players, so must divide this by 2
-    args.batch_size = int(args.num_envs * args.num_steps) // 2
+    args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # fmt: on
     return args
+
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -92,34 +91,28 @@ class Agent(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
             # 4 frame stack so that is the first number
-            layer_init(nn.Conv2d(4, 256, 8, stride=2)),
+            layer_init(nn.Conv2d(4, 128, 8, stride=2)),
             nn.MaxPool2d(kernel_size=4, stride=2),
             nn.LeakyReLU(),
-            layer_init(nn.Conv2d(256, 128, 4, stride=2)),
-            nn.LeakyReLU(),
-            layer_init(nn.Conv2d(128, 128, 2, stride=1)),
+            layer_init(nn.Conv2d(128, 64, 4, stride=2)),
             nn.LeakyReLU(),
             nn.Flatten(),
 
-            # 7680 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
-            layer_init(nn.Linear(7680, 4096)),
+            # 4992 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
+            layer_init(nn.Linear(4992, 2048)),
             nn.LeakyReLU(),
-            layer_init(nn.Linear(4096, 4096)),
+            layer_init(nn.Linear(2048, 2048)),
             nn.LeakyReLU(),
-            layer_init(nn.Linear(4096, 2048)),
+            layer_init(nn.Linear(2048, 1024)),
             nn.LeakyReLU(),
         )
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(2048,1024), std=0.01),
-            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
         )
         
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(2048,1024), std=0.01),
-            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, 1), std=1)
@@ -141,54 +134,15 @@ class Agent(nn.Module):
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
 
 
-
 if __name__ == "__main__":
-    # extra moves added for the more complicated model 
-    ACTION_BOOK = [
-        # -----FORWARD
-        # None
-        [0,False,False,False],
-        # Jump
-        [0,True,False,False],
-        # start longjump (crouch)
-        [0,False,False,True],
-        # Dive
-        [0,False,True,False],
-
-        # -----FORWARD RIGHT
-        # None
-        [30,False,False,False],
-        [10,False,False,False],
-        # Jump
-        [30,True,False,False],
-
-        # -----FORWARD LEFT
-        # None
-        [-30,False,False,False],
-        [-10,False,False,False],
-        # Jump
-        [-30,True,False,False],
-
-        # -----BACKWARDS
-        # None
-        # [180,False,False,False],
-        # Jump
-        # [180,True,False,False],
-
-        # # ----- NO STICK (no direction held)
-        # # None
-        # ["noStick",False,False,False],
-        # # Groundpound
-        # ["noStick",False,False,True],
-    ]
-    env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+        # env setup
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5)
     envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
-
     envs = ss.frame_stack_v1(envs, 4)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
     # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
+    # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
 
     envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
@@ -197,9 +151,7 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
-    # hider seeker split (ie first half are hiders, second half are seekers)
-    H_S_SPLIT = env.MAX_PLAYERS//2
-    run_name = f"SM64_TAG_PPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
+    run_name = f"SM64_CURIOSITY_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
     if args.track:
         import wandb
 
@@ -230,15 +182,10 @@ if __name__ == "__main__":
 
     assert isinstance(envs.single_action_space, gymnasium.spaces.Discrete), "only discrete action space is supported"
 
-    agentHider = Agent(envs).to(device)
-    optimizerHider = optim.Adam(agentHider.parameters(), lr=args.learning_rate, eps=1e-5)
-
-    agentSeeker = Agent(envs).to(device)
-    optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
-
+    agent = Agent(envs).to(device)
+    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
     # if you want to load an agent
-    agentHider.load_state_dict(torch.load(f"trained_models/agentHiderXL.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"trained_models/agentHiderXL.pt", map_location=device))
+    agent.load_state_dict(torch.load(f"trained_models/agentCuriosity.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
@@ -261,8 +208,7 @@ if __name__ == "__main__":
         if args.anneal_lr:
             frac = 1.0 - (update - 1.0) / num_updates
             lrnow = frac * args.learning_rate
-            optimizerHider.param_groups[0]["lr"] = lrnow
-            optimizerSeeker.param_groups[0]["lr"] = lrnow
+            optimizer.param_groups[0]["lr"] = lrnow
         o, _ = envs.reset()
         next_obs = torch.Tensor(o).to(device)
         next_done = torch.zeros(args.num_envs).to(device)
@@ -273,14 +219,13 @@ if __name__ == "__main__":
 
             # ALGO LOGIC: action logic
             with torch.no_grad():
-                hider_results = agentHider.get_action_and_value(next_obs[:H_S_SPLIT])
-                seeker_results = agentSeeker.get_action_and_value(next_obs[H_S_SPLIT:])
-                action, logprob, _, value = [torch.cat((hider_results[i], seeker_results[i])) for i in range(4)]
+                action, logprob, _, value = agent.get_action_and_value(next_obs)
                 values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
 
             # TRY NOT TO MODIFY: execute the game and log data.
+            envs.step(action.cpu().numpy())
             tmp = envs.step(action.cpu().numpy())
             next_obs, reward, done, info = tmp[0], tmp[1], tmp[2], tmp[3]
             rewards[step] = torch.tensor(reward).to(device).view(-1)
@@ -295,11 +240,7 @@ if __name__ == "__main__":
 
         # bootstrap value if not done
         with torch.no_grad():
-            hider_values = agentHider.get_value(next_obs[:H_S_SPLIT])
-            seeker_values = agentSeeker.get_value(next_obs[H_S_SPLIT:])
-            hs_values = torch.cat((hider_values, seeker_values))
-            
-            next_value = hs_values.reshape(1, -1)
+            next_value = agent.get_value(next_obs).reshape(1, -1)
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             for t in reversed(range(args.num_steps)):
@@ -313,22 +254,13 @@ if __name__ == "__main__":
                 advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
             returns = advantages + values
 
-
-        # split each of the storage variables into their respective hider and seeker parts
-        obsHider, obsSeeker = obs.split(H_S_SPLIT, dim=1)
-        actionsHider, actionsSeeker = actions.split(H_S_SPLIT, dim=1)
-        logprobsHider, logprobsSeeker = logprobs.split(H_S_SPLIT, dim=1)
-        advantagesHider, advantagesSeeker = advantages.split(H_S_SPLIT, dim=1)
-        returnsHider, returnsSeeker = returns.split(H_S_SPLIT, dim=1)
-        valuesHider, valuesSeeker = values.split(H_S_SPLIT, dim=1)
-
         # flatten the batch
-        b_obs = obsHider.reshape((-1,) + envs.single_observation_space.shape)
-        b_logprobs = logprobsHider.reshape(-1)
-        b_actions = actionsHider.reshape((-1,) + envs.single_action_space.shape)
-        b_advantages = advantagesHider.reshape(-1)
-        b_returns = returnsHider.reshape(-1)
-        b_values = valuesHider.reshape(-1)
+        b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
+        b_logprobs = logprobs.reshape(-1)
+        b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
+        b_advantages = advantages.reshape(-1)
+        b_returns = returns.reshape(-1)
+        b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
         b_inds = np.arange(args.batch_size)
@@ -339,7 +271,7 @@ if __name__ == "__main__":
                 end = start + args.minibatch_size
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = agentHider.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
@@ -376,88 +308,10 @@ if __name__ == "__main__":
                 entropy_loss = entropy.mean()
                 loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
 
-                optimizerHider.zero_grad()
+                optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_(agentHider.parameters(), args.max_grad_norm)
-                optimizerHider.step()
-
-            if args.target_kl is not None:
-                if approx_kl > args.target_kl:
-                    break
-        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
-        var_y = np.var(y_true)
-        explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-
-        # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizerHider.param_groups[0]["lr"], global_step)
-        writer.add_scalar("lossesHider/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("lossesHider/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("lossesHider/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("lossesHider/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("lossesHider/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("lossesHider/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("lossesHider/explained_variance", explained_var, global_step)
-
-        # Same thing for seeker learning
-                 
-        # flatten the batch
-        b_obs = obsSeeker.reshape((-1,) + envs.single_observation_space.shape)
-        b_logprobs = logprobsSeeker.reshape(-1)
-        b_actions = actionsSeeker.reshape((-1,) + envs.single_action_space.shape)
-        b_advantages = advantagesSeeker.reshape(-1)
-        b_returns = returnsSeeker.reshape(-1)
-        b_values = valuesSeeker.reshape(-1)
-
-        # Optimizing the policy and value network
-        b_inds = np.arange(args.batch_size)
-        clipfracs = []
-        for epoch in range(args.update_epochs):
-            np.random.shuffle(b_inds)
-            for start in range(0, args.batch_size, args.minibatch_size):
-                end = start + args.minibatch_size
-                mb_inds = b_inds[start:end]
-
-                _, newlogprob, entropy, newvalue = agentSeeker.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
-                logratio = newlogprob - b_logprobs[mb_inds]
-                ratio = logratio.exp()
-
-                with torch.no_grad():
-                    # calculate approx_kl http://joschu.net/blog/kl-approx.html
-                    old_approx_kl = (-logratio).mean()
-                    approx_kl = ((ratio - 1) - logratio).mean()
-                    clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
-
-                mb_advantages = b_advantages[mb_inds]
-                if args.norm_adv:
-                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
-
-                # Policy loss
-                pg_loss1 = -mb_advantages * ratio
-                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
-                pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-
-                # Value loss
-                newvalue = newvalue.view(-1)
-                if args.clip_vloss:
-                    v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
-                    v_clipped = b_values[mb_inds] + torch.clamp(
-                        newvalue - b_values[mb_inds],
-                        -args.clip_coef,
-                        args.clip_coef,
-                    )
-                    v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
-                    v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-                    v_loss = 0.5 * v_loss_max.mean()
-                else:
-                    v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
-
-                entropy_loss = entropy.mean()
-                loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
-
-                optimizerSeeker.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_norm_(agentSeeker.parameters(), args.max_grad_norm)
-                optimizerSeeker.step()
+                nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+                optimizer.step()
 
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
@@ -468,29 +322,25 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizerHider.param_groups[0]["lr"], global_step)
-        writer.add_scalar("lossesSeeker/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("lossesSeeker/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("lossesSeeker/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("lossesSeeker/explained_variance", explained_var, global_step)
-
+        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
+        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
+        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
+        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
+        writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
+        writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
+        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
+        writer.add_scalar("losses/explained_variance", explained_var, global_step)
+        # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         # average over time and envs
-        hider_rewards, seeker_rewards = rewards.split(args.num_envs//2, dim=1)
-        writer.add_scalar("charts/avg_hider_reward", torch.mean(torch.mean(hider_rewards)), global_step)
-        writer.add_scalar("charts/avg_seeker_reward", torch.mean(torch.mean(seeker_rewards)), global_step)
+        writer.add_scalar("charts/avg_reward", torch.mean(torch.mean(rewards)), global_step)
 
         if args.track:
             # make sure to tune `CHECKPOINT_FREQUENCY` 
             # so models are not saved too frequently
             if update % 20 == 0:
-                torch.save(agentHider.state_dict(), f"{wandb.run.dir}/agentHider.pt")
-                torch.save(agentSeeker.state_dict(), f"{wandb.run.dir}/agentSeeker.pt")
-                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now")
-                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now")
+                torch.save(agent.state_dict(), f"{wandb.run.dir}/agent.pt")
+                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now")
 
     envs.close()
     writer.close()

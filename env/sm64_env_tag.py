@@ -65,12 +65,8 @@ class SM64_ENV_TAG(SM64_ENV):
             d = math.dist(seekerPos, hiderPos)
             d_delta = d - self.prev_distances[hiderIndex]   
 
-            self.rewards[hiderIndex] = d_delta/250 + (hiderAngleDifference_delta/math.pi) / 5
-            self.rewards[seekerIndex] = - d_delta/250 - (seekerAngleDifference_delta/math.pi) / 2
+            self.rewards[hiderIndex] = d_delta/250 + (hiderAngleDifference_delta/math.pi) / 10
+            self.rewards[seekerIndex] = - d_delta/250 - (seekerAngleDifference_delta/math.pi) / 4
             self.prev_distances[hiderIndex] = d
             self.prev_angle_differences[hiderIndex] = hiderAngleDifference
             self.prev_angle_differences[seekerIndex] = seekerAngleDifference
-            # print(self.rewards[hiderIndex])
-
-            # print(self.rewards[hiderIndex], self.rewards[seekerIndex], hiderAngleReward, seekerAnglePenalty)
-        pass

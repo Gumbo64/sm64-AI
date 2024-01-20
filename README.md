@@ -5,7 +5,7 @@
 ```
 cd env && make -j16 MAX_PLAYERS=20
 ```
-MAX_PLAYERS is the number of marios playing per environment. Even numbers are recommended otherwise hide and seek will not work. 255 is the maximum, 20 is recommended.
+MAX_PLAYERS is the number of marios playing per environment. Even numbers are recommended otherwise hide and seek will not work. 255 is the maximum, 20 is recommended. If you want to change MAX_PLAYERS, delete the env/build/us_pc folder first (my temporary solution)
 
 2. install python requirements
 ```

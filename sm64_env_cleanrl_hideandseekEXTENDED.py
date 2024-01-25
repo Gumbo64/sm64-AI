@@ -43,9 +43,9 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=20000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=2.5e-4,
+    parser.add_argument("--learning-rate", type=float, default=1e-4,
         help="the learning rate of the optimizer")
-    parser.add_argument("--num-envs", type=int, default=4,
+    parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
     parser.add_argument("--num-steps", type=int, default=100,
         help="the number of steps to run in each environment per policy rollout")
@@ -65,7 +65,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.06,
+    parser.add_argument("--ent-coef", type=float, default=0.01,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=0.5,
         help="coefficient of the value function")
@@ -75,10 +75,10 @@ def parse_args():
         help="the target KL divergence threshold")
     args = parser.parse_args()
 
-    # we split batches across 2 players, so must divide this by 2
-    args.batch_size = int(args.num_envs * args.num_steps) // 2
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
-    # fmt: on
+    # # we split batches across 2 players, so must divide this by 2
+    # args.batch_size = int(args.num_envs * args.num_steps) // 2
+    # args.minibatch_size = int(args.batch_size // args.num_minibatches)
+    # # fmt: on
     return args
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -160,20 +160,20 @@ if __name__ == "__main__":
         [30,False,False,False],
         [10,False,False,False],
         # Jump
-        [30,True,False,False],
+        # [30,True,False,False],
 
         # -----FORWARD LEFT
         # None
         [-30,False,False,False],
         [-10,False,False,False],
         # Jump
-        [-30,True,False,False],
+        # [-30,True,False,False],
 
         # -----BACKWARDS
         # None
-        # [180,False,False,False],
+        [180,False,False,False],
         # Jump
-        # [180,True,False,False],
+        [180,True,False,False],
 
         # # ----- NO STICK (no direction held)
         # # None
@@ -186,6 +186,7 @@ if __name__ == "__main__":
     envs = ss.color_reduction_v0(envs, mode="full")
 
     envs = ss.frame_stack_v1(envs, 4)
+    envs = ss.black_death_v3(envs)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
     # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
     # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
@@ -197,6 +198,10 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
+    # half because it is spread across 2 players
+    args.batch_size = int(args.num_envs * args.num_steps) // 2
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
+
     # hider seeker split (ie first half are hiders, second half are seekers)
     H_S_SPLIT = env.MAX_PLAYERS//2
     run_name = f"SM64_TAG_PPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
@@ -239,8 +244,8 @@ if __name__ == "__main__":
     optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # if you want to load an agent
-    agentHider.load_state_dict(torch.load(f"trained_models/agentHiderXL.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"trained_models/agentHiderXL.pt", map_location=device))
+    # agentHider.load_state_dict(torch.load(f"trained_models/agentHider_XL_6.pt", map_location=device))
+    # agentSeeker.load_state_dict(torch.load(f"trained_models/agentHider_XL_6.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
@@ -284,7 +289,7 @@ if __name__ == "__main__":
 
             # TRY NOT TO MODIFY: execute the game and log data.
             tmp = envs.step(action.cpu().numpy())
-            next_obs, reward, done, info = tmp[0], tmp[1], tmp[2], tmp[3]
+            next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
@@ -491,8 +496,8 @@ if __name__ == "__main__":
             if update % 20 == 0:
                 torch.save(agentHider.state_dict(), f"{wandb.run.dir}/agentHider.pt")
                 torch.save(agentSeeker.state_dict(), f"{wandb.run.dir}/agentSeeker.pt")
-                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now")
-                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now")
+                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now",  base_path=wandb.run.dir)
+                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now",  base_path=wandb.run.dir)
 
     envs.close()
     writer.close()

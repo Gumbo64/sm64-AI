@@ -152,10 +152,11 @@ class SM64_ENV(ParallelEnv):
 
         self.make_np_imgs(gameStatePointers)
         self.calc_rewards(gameStatePointers)
+        self.make_infos(gameStatePointers)
 
         observations = {a: self.np_imgs[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
         rewards      = {a: self.rewards[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
-        infos        = {a: {}                                                                       for a in self.agents}
+        infos        = {a: self.infos[   self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
         terminations = {a: gameStatePointers[self.AGENT_NAME_TO_INDEX[a]].contents.health == 0      for a in self.agents}
         truncations  = {a: False                                                                    for a in self.agents}
         # print([self.gameStatePointers[self.AGENT_NAME_TO_INDEX[a]].contents.health for a in self.agents])
@@ -164,11 +165,11 @@ class SM64_ENV(ParallelEnv):
         if self.render_mode == "forced":
             self.render()
         # self.render()
-        if self.AUTO_RESET and (any(terminations.values()) or all(truncations.values())):
-            # self.agents = []
-            observations, infos = self.reset()
-            terminations = {a: False for a in self.agents}
-            truncations  = {a: False for a in self.agents}
+        # if self.AUTO_RESET and (any(terminations.values()) or all(truncations.values())):
+        #     # self.agents = []
+        #     observations, infos = self.reset()
+        #     terminations = {a: False for a in self.agents}
+        #     truncations  = {a: False for a in self.agents}
         return observations, rewards, terminations, truncations, infos
     
     def render(self, mode="default"):
@@ -203,7 +204,8 @@ class SM64_ENV(ParallelEnv):
             # if i == 0:
             #     print(s.posX,s.posZ,s.velX,s.velZ)
             self.rewards[i] = (30 - ( (s.posX - goalpos[0])**2  + (s.posZ - goalpos[2])**2 )/4000000 ) / 30
-
+    def make_infos(self,gameStatePointers):
+        self.infos = [{} for _ in range(self.MAX_PLAYERS)]
 
     def make_np_imgs(self,gameStatePointers):
         for i in range(self.MAX_PLAYERS):

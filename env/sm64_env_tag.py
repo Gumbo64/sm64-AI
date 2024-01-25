@@ -65,8 +65,9 @@ class SM64_ENV_TAG(SM64_ENV):
             d = math.dist(seekerPos, hiderPos)
             d_delta = d - self.prev_distances[hiderIndex]   
 
-            self.rewards[hiderIndex] = d_delta/250 + (hiderAngleDifference_delta/math.pi) / 10
-            self.rewards[seekerIndex] = - d_delta/250 - (seekerAngleDifference_delta/math.pi) / 4
+            # max speed is about 50
+            self.rewards[hiderIndex] = (d_delta/(self.FRAME_SKIP * 50)) * 0.8 + (hiderAngleDifference_delta/math.pi) * 0.2
+            self.rewards[seekerIndex] = - (d_delta/(self.FRAME_SKIP * 50)) * 0.5 - (seekerAngleDifference_delta/math.pi) * 0.5
             self.prev_distances[hiderIndex] = d
             self.prev_angle_differences[hiderIndex] = hiderAngleDifference
             self.prev_angle_differences[seekerIndex] = seekerAngleDifference

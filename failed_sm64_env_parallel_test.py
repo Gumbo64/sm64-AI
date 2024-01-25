@@ -28,6 +28,7 @@ def make_env():
     env = ss.color_reduction_v0(env, mode="full")
 
     env = ss.frame_stack_v1(env, 4)
+    env = ss.black_death_v3(env)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     return env
 if __name__ == "__main__":

@@ -89,11 +89,12 @@ env = SM64_ENV(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True)
 c["NUM_POLICIES"] = env.MAX_PLAYERS
 # env = SM64_ENV_TAG(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True)
 
-env = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
-env = ss.color_reduction_v0(env, mode="full")
+envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+envs = ss.color_reduction_v0(envs, mode="full")
 # env = ss.resize_v1(env, x_size=128, y_size=72)
-env = ss.frame_stack_v1(env, 4,stack_dim=0)
-envs = ss.pettingzoo_env_to_vec_env_v1(env)
+envs = ss.frame_stack_v1(envs, 4,stack_dim=0)
+envs = ss.black_death_v3(envs)
+envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
 envs.single_observation_space = envs.observation_space
 envs.single_action_space = envs.action_space

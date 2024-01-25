@@ -75,9 +75,7 @@ def parse_args():
         help="the target KL divergence threshold")
     args = parser.parse_args()
 
-    # we split batches across 2 players, so must divide this by 2
-    args.batch_size = int(args.num_envs * args.num_steps) // 2
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
+
     # fmt: on
     return args
 
@@ -144,6 +142,7 @@ if __name__ == "__main__":
     envs = ss.color_reduction_v0(envs, mode="full")
 
     envs = ss.frame_stack_v1(envs, 4)
+    envs = ss.black_death_v3(envs)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
     # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
     # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
@@ -155,6 +154,9 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
+    # we split batches across 2 players, so must divide this by 2
+    args.batch_size = int(args.num_envs * args.num_steps) // 2
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # hider seeker split (ie first half are hiders, second half are seekers)
     H_S_SPLIT = env.MAX_PLAYERS//2
     run_name = f"SM64_TAG_PPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
@@ -241,7 +243,7 @@ if __name__ == "__main__":
 
             # TRY NOT TO MODIFY: execute the game and log data.
             tmp = envs.step(action.cpu().numpy())
-            next_obs, reward, done, info = tmp[0], tmp[1], tmp[2], tmp[3]
+            next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
@@ -448,8 +450,8 @@ if __name__ == "__main__":
             if update % 20 == 0:
                 torch.save(agentHider.state_dict(), f"{wandb.run.dir}/agentHider.pt")
                 torch.save(agentSeeker.state_dict(), f"{wandb.run.dir}/agentSeeker.pt")
-                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now")
-                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now")
+                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now", base_path=wandb.run.dir)
+                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now", base_path=wandb.run.dir)
 
     envs.close()
     writer.close()

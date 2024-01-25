@@ -1,4 +1,4 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_pettingzoo_ma_ataripy
+# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_atari_lstmpy
 import argparse
 import importlib
 import os
@@ -43,11 +43,11 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=20000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=2.5e-4,
+    parser.add_argument("--learning-rate", type=float, default=5e-5,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=4,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=80,
+    parser.add_argument("--num-steps", type=int, default=400,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -74,8 +74,9 @@ def parse_args():
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
     args = parser.parse_args()
-    args.batch_size = int(args.num_envs * args.num_steps)
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
+
+    args.num_envs = env.MAX_PLAYERS
+
     # fmt: on
     return args
 
@@ -91,58 +92,128 @@ class Agent(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
             # 4 frame stack so that is the first number
-            layer_init(nn.Conv2d(4, 128, 8, stride=2)),
+            layer_init(nn.Conv2d(1, 256, 8, stride=2)),
             nn.MaxPool2d(kernel_size=4, stride=2),
             nn.LeakyReLU(),
-            layer_init(nn.Conv2d(128, 64, 4, stride=2)),
+            layer_init(nn.Conv2d(256, 128, 4, stride=2)),
+            nn.LeakyReLU(),
+            layer_init(nn.Conv2d(128, 128, 2, stride=1)),
             nn.LeakyReLU(),
             nn.Flatten(),
 
-            # 4992 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
-            layer_init(nn.Linear(4992, 2048)),
+            # 7680 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
+            layer_init(nn.Linear(7680, 4096)),
             nn.LeakyReLU(),
-            layer_init(nn.Linear(2048, 2048)),
-            nn.LeakyReLU(),
-            layer_init(nn.Linear(2048, 1024)),
+            layer_init(nn.Linear(4096, 4096)),
             nn.LeakyReLU(),
         )
+        self.lstm = nn.LSTM(4096, 2048)
+        for name, param in self.lstm.named_parameters():
+            if "bias" in name:
+                nn.init.constant_(param, 0)
+            elif "weight" in name:
+                nn.init.orthogonal_(param, 1.0)
+
         self.actor = nn.Sequential(
+            layer_init(nn.Linear(2048,1024), std=0.01),
+            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
         )
         
         self.critic = nn.Sequential(
+            layer_init(nn.Linear(2048,1024), std=0.01),
+            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, 1), std=1)
         )
 
-    def get_value(self, x):
-        x = x.clone()
-        x[:, :, :, [0, 1, 2, 3]] /= 255.0
-        return self.critic(self.network(x.permute((0, 3, 1, 2))))
+    def get_states(self, x, lstm_state, done):
+        hidden = self.network(x / 255.0)
 
-    def get_action_and_value(self, x, action=None):
+        # LSTM logic
+        batch_size = lstm_state[0].shape[1]
+        hidden = hidden.reshape((-1, batch_size, self.lstm.input_size))
+        done = done.reshape((-1, batch_size))
+        new_hidden = []
+        for h, d in zip(hidden, done):
+            h, lstm_state = self.lstm(
+                h.unsqueeze(0),
+                (
+                    (1.0 - d).view(1, -1, 1) * lstm_state[0],
+                    (1.0 - d).view(1, -1, 1) * lstm_state[1],
+                ),
+            )
+            new_hidden += [h]
+        new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
+        return new_hidden, lstm_state
+
+    def get_value(self, x, lstm_state, done):
         x = x.clone()
-        x[:, :, :, [0, 1, 2, 3]] /= 255.0
-        hidden = self.network(x.permute((0, 3, 1, 2)))
+        hidden, _ = self.get_states(x.permute((0, 3, 1, 2)), lstm_state, done)
+        return self.critic(hidden)
+
+    def get_action_and_value(self, x, lstm_state, done, action=None):
+        # the /255 is done in get_states
+        x = x.clone()
+        hidden, lstm_state = self.get_states(x.permute((0, 3, 1, 2)), lstm_state, done)
         logits = self.actor(hidden)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
+        return action, probs.log_prob(action), probs.entropy(), self.critic(hidden), lstm_state
 
 
 if __name__ == "__main__":
-        # env setup
-    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5)
-    envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+    # extra moves added for the more complicated model 
+    ACTION_BOOK = [
+        # -----FORWARD
+        # None
+        [0,False,False,False],
+        # Jump
+        [0,True,False,False],
+        # start longjump (crouch)
+        [0,False,False,True],
+        # Dive
+        [0,False,True,False],
+
+        # -----FORWARD RIGHT
+        # None
+        [30,False,False,False],
+        [10,False,False,False],
+        # Jump
+        # [30,True,False,False],
+
+        # -----FORWARD LEFT
+        # None
+        [-30,False,False,False],
+        [-10,False,False,False],
+        # Jump
+        # [-30,True,False,False],
+
+        # -----BACKWARDS
+        # None
+        [180,False,False,False],
+        # Jump
+        [180,True,False,False],
+
+        # # ----- NO STICK (no direction held)
+        # # None
+        # ["noStick",False,False,False],
+        # # Groundpound
+        # ["noStick",False,False,True],
+    ]
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=10, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+    envs = ss.black_death_v3(env)
+    envs = ss.clip_reward_v0(envs, lower_bound=0, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
-    envs = ss.frame_stack_v1(envs, 4)
+    envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
+
     # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
+    # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
 
     envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
@@ -151,7 +222,12 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
-    run_name = f"SM64_CURIOSITY_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
+    args.batch_size = int(args.num_envs * args.num_steps)
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
+
+    args.num_iterations = args.total_timesteps // args.batch_size
+    run_name = f"CURIOSITY_LSTMPPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
+
     if args.track:
         import wandb
 
@@ -181,13 +257,11 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
 
-    assert isinstance(envs.single_action_space, gymnasium.spaces.Discrete), "only discrete action space is supported"
-
     agent = Agent(envs).to(device)
+    # if you want to load a model
+    # agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM6.pt", map_location=device))
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
-    # if you want to load an agent
-    agent.load_state_dict(torch.load(f"trained_models/agentCuriosity.pt", map_location=device))
-    
+
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
     actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape).to(device)
@@ -199,49 +273,58 @@ if __name__ == "__main__":
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
-    # o, infoss = envs.reset()
-    # next_obs = torch.Tensor(o).to(device)
+    # next_obs, _ = envs.reset(seed=args.seed)
+    # next_obs = torch.Tensor(next_obs).to(device)
     # next_done = torch.zeros(args.num_envs).to(device)
-    num_updates = args.total_timesteps // args.batch_size
+    next_lstm_state = (
+        torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
+        torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
+    )  # hidden and cell states (see https://youtu.be/8HyCNIVRbSU)
 
-    for update in tqdm(range(1, num_updates + 1)):
+    for iteration in tqdm(range(1, args.num_iterations + 1)):
+        initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
-            frac = 1.0 - (update - 1.0) / num_updates
+            frac = 1.0 - (iteration - 1.0) / args.num_iterations
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
-        o, _ = envs.reset()
+
+        o, infos = envs.reset()
         next_obs = torch.Tensor(o).to(device)
+        
         next_done = torch.zeros(args.num_envs).to(device)
-        for step in tqdm(range(0, args.num_steps), leave=False):
-            global_step += 1 * args.num_envs
+        for step in tqdm(range(0, args.num_steps),leave=False):
+            global_step += args.num_envs
             obs[step] = next_obs
             dones[step] = next_done
 
             # ALGO LOGIC: action logic
             with torch.no_grad():
-                action, logprob, _, value = agent.get_action_and_value(next_obs)
+                action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done)
                 values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
 
             # TRY NOT TO MODIFY: execute the game and log data.
-            envs.step(action.cpu().numpy())
             tmp = envs.step(action.cpu().numpy())
-            next_obs, reward, done, info = tmp[0], tmp[1], tmp[2], tmp[3]
+            next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
-            # for idx, item in enumerate(info):
-            #     player_idx = idx % 2
-            #     if "episode" in item.keys():
-            #         print(f"global_step={global_step}, {player_idx}-episodic_return={item['episode']['r']}")
-            #         writer.add_scalar(f"charts/episodic_return-player{player_idx}", item["episode"]["r"], global_step)
-            #         writer.add_scalar(f"charts/episodic_length-player{player_idx}", item["episode"]["l"], global_step)
+            # if "final_info" in infos:
+            #     for info in infos["final_info"]:
+            #         if info and "episode" in info:
+            #             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
+            #             writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
+            #             writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_value = agent.get_value(next_obs).reshape(1, -1)
+            next_value = agent.get_value(
+                next_obs,
+                next_lstm_state,
+                next_done,
+            ).reshape(1, -1)
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             for t in reversed(range(args.num_steps)):
@@ -259,20 +342,30 @@ if __name__ == "__main__":
         b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
         b_logprobs = logprobs.reshape(-1)
         b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
+        b_dones = dones.reshape(-1)
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
-        b_inds = np.arange(args.batch_size)
+        assert args.num_envs % args.num_minibatches == 0
+        envsperbatch = args.num_envs // args.num_minibatches
+        envinds = np.arange(args.num_envs)
+        flatinds = np.arange(args.batch_size).reshape(args.num_steps, args.num_envs)
         clipfracs = []
         for epoch in range(args.update_epochs):
-            np.random.shuffle(b_inds)
-            for start in range(0, args.batch_size, args.minibatch_size):
-                end = start + args.minibatch_size
-                mb_inds = b_inds[start:end]
+            np.random.shuffle(envinds)
+            for start in range(0, args.num_envs, envsperbatch):
+                end = start + envsperbatch
+                mbenvinds = envinds[start:end]
+                mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
 
-                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
+                _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
+                    b_obs[mb_inds],
+                    (initial_lstm_state[0][:, mbenvinds], initial_lstm_state[1][:, mbenvinds]),
+                    b_dones[mb_inds],
+                    b_actions.long()[mb_inds],
+                )
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
@@ -314,9 +407,8 @@ if __name__ == "__main__":
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
 
-            if args.target_kl is not None:
-                if approx_kl > args.target_kl:
-                    break
+            if args.target_kl is not None and approx_kl > args.target_kl:
+                break
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)
@@ -331,17 +423,14 @@ if __name__ == "__main__":
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        # print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
-        # average over time and envs
         writer.add_scalar("charts/avg_reward", torch.mean(torch.mean(rewards)), global_step)
-
+        writer.add_scalar("charts/n_nodes", infos[0]["node_index"], global_step)
         if args.track:
             # make sure to tune `CHECKPOINT_FREQUENCY` 
             # so models are not saved too frequently
-            if update % 20 == 0:
+            if iteration % 20 == 0:
                 torch.save(agent.state_dict(), f"{wandb.run.dir}/agent.pt")
-                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now")
-
+                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now", base_path=wandb.run.dir)
     envs.close()
     writer.close()

@@ -69,6 +69,7 @@ envs = ss.color_reduction_v0(envs, mode="full")
 
 envs = ss.resize_v1(envs, x_size=128, y_size=72)
 envs = ss.frame_stack_v1(envs, 4)
+envs = ss.black_death_v3(envs)
 envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
 envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")

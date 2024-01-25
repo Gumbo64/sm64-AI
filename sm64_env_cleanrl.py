@@ -74,8 +74,6 @@ def parse_args():
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
     args = parser.parse_args()
-    args.batch_size = int(args.num_envs * args.num_steps)
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # fmt: on
     return args
 
@@ -135,12 +133,14 @@ class Agent(nn.Module):
 
 
 if __name__ == "__main__":
-        # env setup
+    # env setup
     env = SM64_ENV(FRAME_SKIP=4, N_RENDER_COLUMNS=5)
     envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
     envs = ss.frame_stack_v1(envs, 4)
+    envs = ss.black_death_v3(envs)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
+
     # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
     # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
 
@@ -151,6 +151,9 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
+    # we split batches across 2 players, so must divide this by 2
+    args.batch_size = int(args.num_envs * args.num_steps) // 2
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
     run_name = f"SM64_PPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
     if args.track:
         import wandb
@@ -228,7 +231,7 @@ if __name__ == "__main__":
             # TRY NOT TO MODIFY: execute the game and log data.
             envs.step(action.cpu().numpy())
             tmp = envs.step(action.cpu().numpy())
-            next_obs, reward, done, info = tmp[0], tmp[1], tmp[2], tmp[3]
+            next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
@@ -341,7 +344,7 @@ if __name__ == "__main__":
             # so models are not saved too frequently
             if update % 20 == 0:
                 torch.save(agent.state_dict(), f"{wandb.run.dir}/agent.pt")
-                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now")
+                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now", base_path=wandb.run.dir)
 
     envs.close()
     writer.close()

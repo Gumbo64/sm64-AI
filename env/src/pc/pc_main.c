@@ -314,9 +314,9 @@ void cam_focus_player(int playerIndex){
     Vec3f campos;
     gSmluaCameraIndex = playerIndex;
     if (gHideAndSeekMode){
-        gSmluaCompassTargetIndex = ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS;
+        vec3f_copy(gSmluaCompassTargets[playerIndex], gMarioStates[( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS ].pos);
     }else{
-        gSmluaCompassTargetIndex = 0;
+        vec3f_set(gSmluaCompassTargets[playerIndex],0,0,0);
     }
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
 
@@ -332,6 +332,11 @@ void cam_focus_player(int playerIndex){
     gHudDisplay.lives = gGlobalTimer;
 }
 
+void set_compass_targets(Vec3f targets[MAX_PLAYERS]){
+    for (int i=0; i<MAX_PLAYERS;i++){
+        vec3f_copy(gSmluaCompassTargets[i], targets[i]);
+    }
+}
 
 void force_make_frame(int playerIndex) {
 
@@ -339,7 +344,7 @@ void force_make_frame(int playerIndex) {
     if (makeOtherPlayersInvisible){
         for (int i=0; i<MAX_PLAYERS;i++){
             // if you are rendering yourself OR you are rendering your chaser/evader
-            if (i == playerIndex || ( gHideAndSeekMode && i == gSmluaCompassTargetIndex )  ){
+            if (i == playerIndex || ( gHideAndSeekMode && i == ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS )  ){
                 gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
             }else{
                 gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
@@ -466,7 +471,8 @@ void update_controllers(struct inputStruct* inputs){
 
 void reset_script(void);
 void reset(void){
-    dynos_warp_to_level(LEVEL_BOB, 1, 0);
+    // dynos_warp_to_level(LEVEL_BOB, 1, 0);
+    dynos_warp_restart_level();
     for (int i=0; i<MAX_PLAYERS;i++){
         gMarioStates[i].health = 0x880;
         gMarioStates[i].numLives = 4;
@@ -501,6 +507,9 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         gGameStateStructs[i]->velX = gMarioStates[i].vel[0];
         gGameStateStructs[i]->velY = gMarioStates[i].vel[1];
         gGameStateStructs[i]->velZ = gMarioStates[i].vel[2];
+        // + 100 because otherwise it will clip through the floor when the floor is too close (don't worry, 50 is less that mario's height)
+        gGameStateStructs[i]->heightAboveGround =  gMarioStates[i].pos[1] - find_floor_height(gMarioStates[i].pos[0], gMarioStates[i].pos[1] + 50, gMarioStates[i].pos[2]);
+        
 
         // the opposite of DEGREES()
         
@@ -522,12 +531,12 @@ void makemariolol(){
 }
 extern int gImgHeight;
 extern int gImgWidth;
-void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode, int renderWidth,int renderHeight) {
+void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode,bool compassEnabled, int renderWidth,int renderHeight) {
     gImgHeight = renderHeight;
     gImgWidth = renderWidth;
     makeOtherPlayersInvisible = invisible;
     gHideAndSeekMode = seekMode;
-    gDjuiDisabled = !seekMode;
+    gDjuiDisabled = !compassEnabled;
 
     // Ensure it is a server, avoid CLI options
     gCLIOpts.NetworkPort = 7777;

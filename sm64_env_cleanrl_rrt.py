@@ -15,7 +15,7 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
+from env.sm64_env_rrt import SM64_ENV_RRT
 from tqdm import tqdm
 
 def parse_args():
@@ -47,7 +47,7 @@ def parse_args():
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=750,
+    parser.add_argument("--num-steps", type=int, default=200,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         # # Groundpound
         # ["noStick",False,False,True],
     ]
-    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+    env = SM64_ENV_RRT(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
     envs = ss.black_death_v3(env)
     envs = ss.clip_reward_v0(envs, lower_bound=0, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
@@ -222,13 +222,11 @@ if __name__ == "__main__":
 
     args = parse_args()
     args.num_envs = env.MAX_PLAYERS
-
-
     args.batch_size = int(args.num_envs * args.num_steps)
-    args.minibatch_size = int(args.batch_size // (args.num_minibatches) )
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
 
     args.num_iterations = args.total_timesteps // args.batch_size
-    run_name = f"CURIOSITY_LSTMPPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
+    run_name = f"RRT_LSTMPPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
 
     if args.track:
         import wandb
@@ -243,6 +241,7 @@ if __name__ == "__main__":
             save_code=True,
         )
         writer = SummaryWriter(wandb.run.dir)
+        # envs.unwrapped.SAVE_PATH = wandb.run.dir
     else:
         writer = SummaryWriter(f"runs/{run_name}")
     writer.add_text(
@@ -261,7 +260,7 @@ if __name__ == "__main__":
 
     agent = Agent(envs).to(device)
     # if you want to load a model
-    agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM11.pt", map_location=device))
+    # agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM7.pt", map_location=device))
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -427,12 +426,15 @@ if __name__ == "__main__":
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         writer.add_scalar("charts/avg_reward", torch.mean(torch.mean(rewards)), global_step)
-        writer.add_scalar("charts/n_nodes", infos[0]["node_index"], global_step)
+        writer.add_scalar("charts/n_nodes", infos[0]["n_nodes"], global_step)
         if args.track:
             # make sure to tune `CHECKPOINT_FREQUENCY` 
             # so models are not saved too frequently
             if iteration % 20 == 0:
                 torch.save(agent.state_dict(), f"{wandb.run.dir}/agent.pt")
                 wandb.save(f"{wandb.run.dir}/agent.pt", policy="now", base_path=wandb.run.dir)
+                # wandb.save(f"{wandb.run.dir}/graph_visualization.png", policy="now", base_path=wandb.run.dir)
+                # wandb.save(f"{wandb.run.dir}/rrt_torch_nodes.pt", policy="now", base_path=wandb.run.dir)
+                # wandb.save(f"{wandb.run.dir}/rrt_nx_graph.pkl", policy="now", base_path=wandb.run.dir)
     envs.close()
     writer.close()

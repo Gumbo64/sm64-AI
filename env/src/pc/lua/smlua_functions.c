@@ -724,15 +724,22 @@ int smlua_func_smlua_anim_util_register_animation(lua_State* L) {
 }
 
 int gSmluaCameraIndex = 0;
-int gSmluaCompassTargetIndex = 1;
+Vec3f gSmluaCompassTargets[MAX_PLAYERS];
 int smlua_func_get_current_camera_index(lua_State* L){
     if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
     lua_pushinteger(L, gSmluaCameraIndex);
     return 1;
 }
-int smlua_func_get_current_compass_target_index(lua_State* L){
-    if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
-    lua_pushinteger(L, gSmluaCompassTargetIndex);
+int smlua_func_get_current_compass_target(lua_State* L){
+    if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
+    // lua_pushinteger(L, gSmluaCompassTargets);
+    smlua_push_number_field(1, "x", gSmluaCompassTargets[gSmluaCameraIndex][0]);
+    smlua_push_number_field(1, "y", gSmluaCompassTargets[gSmluaCameraIndex][1]);
+    smlua_push_number_field(1, "z", gSmluaCompassTargets[gSmluaCameraIndex][2]);
+
+    // smlua_push_number_field(2, "x", gSmluaCompassTargets[gSmluaCameraIndex]);
+    // smlua_push_number_field(2, "y", gSmluaCompassTargets[gSmluaCameraIndex]);
+    // smlua_push_number_field(2, "z", gSmluaCompassTargets[gSmluaCameraIndex]);
     return 1;
 }
 
@@ -763,5 +770,5 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "smlua_anim_util_register_animation", smlua_func_smlua_anim_util_register_animation);
 
     smlua_bind_function(L, "get_current_camera_index", smlua_func_get_current_camera_index);
-    smlua_bind_function(L, "get_current_compass_target_index", smlua_func_get_current_compass_target_index);
+    smlua_bind_function(L, "get_current_compass_target", smlua_func_get_current_compass_target);
 }

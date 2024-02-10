@@ -13,8 +13,8 @@
 #include "make_const_nonconst.h"
 // ENTRYSHIZ
 const LevelScript level_script_entry[] = {
-    // SET_REG(/*value*/ LEVEL_CASTLE_GROUNDS),
-    SET_REG(/*value*/ LEVEL_BOB),
+    SET_REG(/*value*/ LEVEL_CASTLE_GROUNDS),
+    // SET_REG(/*value*/ LEVEL_BOB),
     EXECUTE(/*seg*/ 0x14, /*script*/ _introSegmentRomStart, /*scriptEnd*/ _introSegmentRomEnd, /*entry*/ level_main_scripts_entry),
     JUMP(level_script_entry),
 

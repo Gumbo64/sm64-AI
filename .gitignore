@@ -4,6 +4,7 @@ wandb
 runs
 rayshit
 __pycache__
+recorded_images/*.png
 # don't upload any models except the default hider and seeker
 trained_models
 !trained_models/agentHider.pt

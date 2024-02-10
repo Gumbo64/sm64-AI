@@ -24,6 +24,7 @@ class GAME_STATE_STRUCT(ctypes.Structure):
         ("velX",ctypes.c_float),
         ("velY",ctypes.c_float),
         ("velZ",ctypes.c_float),
+        ("heightAboveGround",ctypes.c_float),
     ]
 
 class INPUT_STRUCT(ctypes.Structure):
@@ -61,7 +62,7 @@ class SM64_ENV(ParallelEnv):
     }
 
     def __init__(self, FRAME_SKIP=4 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False, ACTION_BOOK=[],
-                 N_RENDER_COLUMNS=5, render_mode="forced", HIDE_AND_SEEK_MODE=False,
+                 N_RENDER_COLUMNS=5, render_mode="forced",HIDE_AND_SEEK_MODE=False, COMPASS_ENABLED=False,
                  IMG_WIDTH=128, IMG_HEIGHT=72):
         self.render_mode = render_mode
 
@@ -113,14 +114,14 @@ class SM64_ENV(ParallelEnv):
         window = pygame.display.set_mode((self.RENDER_WINDOW_WIDTH, self.RENDER_WINDOW_HEIGHT))
         pygame.display.set_caption("mario command panel")
 
-
+        dll.set_compass_targets.argtypes = [ (3 * ctypes.c_float)* self.MAX_PLAYERS]
         
         dll.step_pixels.argtypes = [INPUT_STRUCT * self.MAX_PLAYERS , ctypes.c_int]
         dll.step_pixels.restype = ctypes.POINTER(ctypes.POINTER(GAME_STATE_STRUCT))
         
-        dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p, ctypes.c_bool,ctypes.c_int,ctypes.c_bool,ctypes.c_int,ctypes.c_int]
+        dll.main_func.argtypes = [ctypes.c_char_p,ctypes.c_char_p, ctypes.c_bool,ctypes.c_int,ctypes.c_bool,ctypes.c_bool,ctypes.c_int,ctypes.c_int]
 
-        dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'),MAKE_OTHER_PLAYERS_INVISIBLE,PLAYER_COLLISION_TYPE, HIDE_AND_SEEK_MODE,IMG_WIDTH,IMG_HEIGHT)
+        dll.main_func(dirpath.encode('utf-8'),dirpath.encode('utf-8'),MAKE_OTHER_PLAYERS_INVISIBLE,PLAYER_COLLISION_TYPE,HIDE_AND_SEEK_MODE, COMPASS_ENABLED,IMG_WIDTH,IMG_HEIGHT)
         actions = {agent: self.action_space(agent).sample() for agent in self.agents}
         for i in range(10):
             self.step(actions)
@@ -128,14 +129,14 @@ class SM64_ENV(ParallelEnv):
         dll.makemariolol()
         self.reset()
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None, random_moves=10):
         dll.reset()
 
         self.agents = self.possible_agents.copy()
         # reset the image stacks
         self.np_imgs = [np.zeros((self.IMG_HEIGHT,self.IMG_WIDTH,3), dtype=np.uint8) for i in range(self.MAX_PLAYERS)]
         
-        for i in range(10):
+        for i in range(random_moves):
             actions = {agent: self.action_space(agent).sample() for agent in self.agents}
             observations, rewards, terminations, truncations, infos = self.step(actions)
 
@@ -145,11 +146,9 @@ class SM64_ENV(ParallelEnv):
         inputStructs = (INPUT_STRUCT * self.MAX_PLAYERS)()
         for name in actions:
             inputStructs[self.AGENT_NAME_TO_INDEX[name]] = make_action_struct(self.action_book[actions[name]])
-
+        
         gameStatePointers = dll.step_pixels(inputStructs,self.FRAME_SKIP)
         
-            
-
         self.make_np_imgs(gameStatePointers)
         self.calc_rewards(gameStatePointers)
         self.make_infos(gameStatePointers)
@@ -205,7 +204,22 @@ class SM64_ENV(ParallelEnv):
             #     print(s.posX,s.posZ,s.velX,s.velZ)
             self.rewards[i] = (30 - ( (s.posX - goalpos[0])**2  + (s.posZ - goalpos[2])**2 )/4000000 ) / 30
     def make_infos(self,gameStatePointers):
-        self.infos = [{} for _ in range(self.MAX_PLAYERS)]
+        pos = [(gameStatePointers[i].contents.posX,gameStatePointers[i].contents.posY,gameStatePointers[i].contents.posZ) for i in range(self.MAX_PLAYERS)]
+        
+        self.infos = [{"pos":pos[i]} for i in range(self.MAX_PLAYERS)]
+    
+    def set_compass_targets(self, targets):
+        # Convert numpy array to ctypes array
+        ctypes_targets = ((3 * ctypes.c_float)* self.MAX_PLAYERS)()
+        for i in range(self.MAX_PLAYERS):
+            ctypes_vec3f = (3 * ctypes.c_float)()
+            for j in range(3):
+                ctypes_vec3f[j] = targets[i][j]
+            ctypes_targets[i] = ctypes_vec3f
+        
+        dll.set_compass_targets(ctypes_targets)
+
+        
 
     def make_np_imgs(self,gameStatePointers):
         for i in range(self.MAX_PLAYERS):
@@ -226,24 +240,3 @@ class SM64_ENV(ParallelEnv):
     def action_space(self, agent):
         return Discrete(self.N_ACTIONS)
 
-if __name__ == "__main__":
-    env = SM64_ENV(FRAME_SKIP=4)
-
-    done = False
-    while not done:
-        for i in range(1000000):
-            list_actions = [0 for _ in range(env.MAX_PLAYERS)]
-            # if i % 10 == 0:
-            #     list_actions = [2 for _ in range(env.MAX_PLAYERS)]
-            # if i % 10 == 1:
-            #     list_actions = [1 for _ in range(env.MAX_PLAYERS)]
-                
-            # list_actions = [random.randint(0,env.N_ACTIONS-1) for _ in range(env.MAX_PLAYERS)]
-            actions = {f"mario_{k}": list_actions[k] for k in range(env.MAX_PLAYERS) }
-            observations, rewards, terminations, truncations, infos = env.step(actions)
-            # print("SHAPE: ",observations["mario0"].shape)
-            env.render()
-
-        print("RESET")
-        env.reset()
-    

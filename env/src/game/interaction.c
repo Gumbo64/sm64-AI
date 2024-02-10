@@ -2373,7 +2373,8 @@ void mario_process_interactions(struct MarioState *m) {
 }
 
 void check_death_barrier(struct MarioState *m) {
-    if (!m || m->playerIndex != 0) { return; }
+    // if (!m || m->playerIndex != 0) { return; }
+    if (!m) { return; }
 
     if (m->pos[1] < m->floorHeight + 2048.0f) {
         bool allowDeath = true;

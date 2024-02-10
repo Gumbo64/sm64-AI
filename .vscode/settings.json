@@ -1,7 +1,8 @@
 {
     "files.associations": {
-        "intro_geo.h": "c",
-        "surface_collision.h": "c"
+      "intro_geo.h": "c",
+      "surface_collision.h": "c",
+      "types.h": "c"
     },
     "terminal.integrated.profiles.windows": {
         "PowerShell": {

@@ -1,11 +1,12 @@
-from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
-from tqdm import tqdm
+
+from env.sm64_env_rrt import SM64_ENV_RRT
+from tqdm import trange
 import supersuit as ss
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torch.distributions.categorical import Categorical
 import numpy as np
-
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
@@ -89,6 +90,10 @@ class Agent(nn.Module):
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden), lstm_state
 
+
+
+# env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, IMG_WIDTH=480, IMG_HEIGHT=270)
+    
 ACTION_BOOK = [
     # -----FORWARD
     # None
@@ -126,53 +131,52 @@ ACTION_BOOK = [
     # # Groundpound
     # ["noStick",False,False,True],
 ]
-# env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5, ACTION_BOOK=ACTION_BOOK, IMG_WIDTH=512,IMG_HEIGHT=288)
-env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5, ACTION_BOOK=ACTION_BOOK)
-envs = ss.black_death_v3(env)
+
+env = SM64_ENV_RRT(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK, NODE_RADIUS= 400, LOAD_PATH="rrt_stuff" )
+envs = ss.clip_reward_v0(env, lower_bound=0, upper_bound=1)
+envs = ss.color_reduction_v0(envs, mode="full")
 
 envs = ss.resize_v1(envs, x_size=128, y_size=72)
-envs = ss.clip_reward_v0(envs, lower_bound=0, upper_bound=1)
-envs = ss.color_reduction_v0(envs, mode="full")
 envs = ss.frame_stack_v1(envs, 1)
+envs = ss.black_death_v3(envs)
 envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
 envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
-
 envs.single_observation_space = envs.observation_space
 envs.single_action_space = envs.action_space
 envs.is_vector_env = True
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-agent = Agent(envs).to(device)
-agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM10.pt", map_location=device))
 
+agent = Agent(envs).to(device)
+agent.load_state_dict(torch.load(f"trained_models/agentRRT.pt", map_location=device))
 
 
 INIT_HP = {
-    "MAX_EPISODES": 100,
-    "MAX_EPISODE_LENGTH": 5000,
+    "MAX_EPISODES": 10,
+    "MAX_EPISODE_LENGTH": 200,
+    "MAX_PLAYERS":env.MAX_PLAYERS,
 }
 
+
 next_lstm_state = (
-    torch.zeros(agent.lstm.num_layers, env.MAX_PLAYERS, agent.lstm.hidden_size).to(device),
-    torch.zeros(agent.lstm.num_layers, env.MAX_PLAYERS, agent.lstm.hidden_size).to(device),
-)  
-
-for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
+    torch.zeros(agent.lstm.num_layers, INIT_HP["MAX_PLAYERS"], agent.lstm.hidden_size).to(device),
+    torch.zeros(agent.lstm.num_layers, INIT_HP["MAX_PLAYERS"], agent.lstm.hidden_size).to(device),
+)  # hidden and cell states (see https://youtu.be/8HyCNIVRbSU)
+for idx_epi in trange(INIT_HP["MAX_EPISODES"]):
+    observations, infos = envs.reset()
+    done_tensor = torch.zeros(INIT_HP["MAX_PLAYERS"]).to(device)
     initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
+    for i in range(INIT_HP["MAX_EPISODE_LENGTH"]):
 
-    o, infos = envs.reset()
-    next_obs = torch.Tensor(o).to(device)
-    
-    next_done = torch.zeros(env.MAX_PLAYERS).to(device)
-    for i in tqdm(range(INIT_HP["MAX_EPISODE_LENGTH"]),leave=False):
+        obs_tensor = torch.Tensor(observations).to(device)
         with torch.no_grad():
-            action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done)
-
+            action, logprob, _, value, next_lstm_state = agent.get_action_and_value(obs_tensor, next_lstm_state, done_tensor)
         observations, rewards, done, truncations, infos = envs.step(action.cpu().numpy())
-        tmp = envs.step(action.cpu().numpy())
-        next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
-        next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+        done_tensor = torch.Tensor(done).to(device)
 
-print("Finished :)")
+    # envs.render()
+    
+
+print("Passed test :)")

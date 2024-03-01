@@ -1,4 +1,5 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_atari_lstmpy
+# Heavily based on this example https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_atari_lstmpy
+
 import argparse
 import importlib
 import os
@@ -43,11 +44,11 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=50000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=1e-4,
+    parser.add_argument("--learning-rate", type=float, default=3e-5,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=750,
+    parser.add_argument("--num-steps", type=int, default=500,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -55,7 +56,7 @@ def parse_args():
         help="the discount factor gamma")
     parser.add_argument("--gae-lambda", type=float, default=0.95,
         help="the lambda for the general advantage estimation")
-    parser.add_argument("--num-minibatches", type=int, default=4,
+    parser.add_argument("--num-minibatches", type=int, default=10,
         help="the number of mini-batches")
     parser.add_argument("--update-epochs", type=int, default=4,
         help="the K epochs to update the policy")
@@ -65,7 +66,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.01,
+    parser.add_argument("--ent-coef", type=float, default=0.001,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=0.5,
         help="coefficient of the value function")
@@ -205,9 +206,11 @@ if __name__ == "__main__":
         # # Groundpound
         # ["noStick",False,False,True],
     ]
-    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK,
+                             NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=400, NODE_MAX_HEIGHT_ABOVE_GROUND=1000,
+                             MAKE_OTHER_PLAYERS_INVISIBLE=True)
     envs = ss.black_death_v3(env)
-    envs = ss.clip_reward_v0(envs, lower_bound=0, upper_bound=1)
+    envs = ss.clip_reward_v0(envs, lower_bound=-1, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
     envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
@@ -228,11 +231,10 @@ if __name__ == "__main__":
     args.minibatch_size = int(args.batch_size // (args.num_minibatches) )
 
     args.num_iterations = args.total_timesteps // args.batch_size
-    run_name = f"CURIOSITY_LSTMPPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
+    run_name = f"CURIOSITY_LSTMPPO_{int(time.time())}__LENGTH_{args.num_steps}_ACTIONS_{env.N_ACTIONS}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}"
 
     if args.track:
         import wandb
-
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
@@ -261,7 +263,7 @@ if __name__ == "__main__":
 
     agent = Agent(envs).to(device)
     # if you want to load a model
-    agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM11.pt", map_location=device))
+    agent.load_state_dict(torch.load(f"trained_models/agentCuriosity_BITDW_41.6h.pt", map_location=device))
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -275,25 +277,40 @@ if __name__ == "__main__":
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
+    
+    ######
     # next_obs, _ = envs.reset(seed=args.seed)
     # next_obs = torch.Tensor(next_obs).to(device)
     # next_done = torch.zeros(args.num_envs).to(device)
+    ######
+    
     next_lstm_state = (
         torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
         torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
     )  # hidden and cell states (see https://youtu.be/8HyCNIVRbSU)
 
     for iteration in tqdm(range(1, args.num_iterations + 1)):
-        initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
+        # reset LSTM hidden units when episode begins
+        # next_lstm_state = (
+        #     torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
+        #     torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
+        # )
+        initial_lstm_state = (
+            next_lstm_state[0].clone(), 
+            next_lstm_state[1].clone()
+        )
+        
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (iteration - 1.0) / args.num_iterations
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
+        ### Uncomment this if you want to reset every iteration
         o, infos = envs.reset()
         next_obs = torch.Tensor(o).to(device)
-        
+        # env.reset_nodes()
+
         next_done = torch.zeros(args.num_envs).to(device)
         for step in tqdm(range(0, args.num_steps),leave=False):
             global_step += args.num_envs
@@ -310,15 +327,17 @@ if __name__ == "__main__":
             # TRY NOT TO MODIFY: execute the game and log data.
             tmp = envs.step(action.cpu().numpy())
             next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
+  
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+            
 
-            # if "final_info" in infos:
-            #     for info in infos["final_info"]:
-            #         if info and "episode" in info:
-            #             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
-            #             writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
-            #             writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+            #DO NOT RESET LSTM AFTER DEATH THIS DOESN'T WORK WELL AT ALL
+            # for i in range(env.MAX_PLAYERS):
+            #     if infos[i]["died"]:
+            #         # when a player dies, reset the lstm state
+            #         next_lstm_state[0][:,i,:] = 0
+            #         next_lstm_state[1][:,i,:] = 0
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -428,11 +447,14 @@ if __name__ == "__main__":
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         writer.add_scalar("charts/avg_reward", torch.mean(torch.mean(rewards)), global_step)
         writer.add_scalar("charts/n_nodes", infos[0]["node_index"], global_step)
+
+        # make sure to tune `CHECKPOINT_FREQUENCY` 
+        # so models are not saved too frequently
         if args.track:
-            # make sure to tune `CHECKPOINT_FREQUENCY` 
-            # so models are not saved too frequently
-            if iteration % 20 == 0:
-                torch.save(agent.state_dict(), f"{wandb.run.dir}/agent.pt")
-                wandb.save(f"{wandb.run.dir}/agent.pt", policy="now", base_path=wandb.run.dir)
+            if iteration % 60 == 0:
+                t = time.time() - start_time
+                t_hours = round(t / 3600, 1)
+                torch.save(agent.state_dict(), f"{wandb.run.dir}/agentCuriosity_{t_hours}h.pt")
+                wandb.save(f"{wandb.run.dir}/agentCuriosity_{t_hours}h.pt", policy="now", base_path=wandb.run.dir)
     envs.close()
     writer.close()

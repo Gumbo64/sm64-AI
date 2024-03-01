@@ -730,6 +730,15 @@ int smlua_func_get_current_camera_index(lua_State* L){
     lua_pushinteger(L, gSmluaCameraIndex);
     return 1;
 }
+
+int gSmluaDeathNotices[MAX_PLAYERS];
+int smlua_func_set_death_notice(lua_State* L){
+    if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
+    int player_index = smlua_to_integer(L, 1);
+    gSmluaDeathNotices[player_index] = 1;
+    return 1;
+}
+
 int smlua_func_get_current_compass_target(lua_State* L){
     if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
     // lua_pushinteger(L, gSmluaCompassTargets);
@@ -771,4 +780,5 @@ void smlua_bind_functions(void) {
 
     smlua_bind_function(L, "get_current_camera_index", smlua_func_get_current_camera_index);
     smlua_bind_function(L, "get_current_compass_target", smlua_func_get_current_compass_target);
+    smlua_bind_function(L, "set_death_notice", smlua_func_set_death_notice);
 }

@@ -12,3 +12,5 @@ MAX_PLAYERS is the number of marios playing per environment. Even numbers are re
 pip install -r requirements.txt
 ``` 
 3. Run sm64_test_tag_model.py to test a pre-trained AI or sm64_env_random_action_text.py to test the environment
+
+to change the map, go to env/mods/compass/main.lua and change gLevelValues.entryLevel to whatever level

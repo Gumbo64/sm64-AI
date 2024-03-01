@@ -4,8 +4,8 @@
 -- description: 
 -- incompatible: compass
 
-gLevelValues.entryLevel = LEVEL_BOB
--- gLevelValues.entryLevel = LEVEL_BITDW
+-- gLevelValues.entryLevel = LEVEL_BOB
+gLevelValues.entryLevel = LEVEL_BITDW
 local my_start_pos = {x = 0, y = 0, z = 0}
 
 function s16(num)
@@ -62,14 +62,14 @@ function on_init()
 end
 hook_event(HOOK_ON_LEVEL_INIT, on_init)
 
--- death eater
+-- death function
 function on_death(m)
 
     m.hurtCounter = 0
     m.health = 0x880
     set_mario_action(m, ACT_IDLE, 0)
     vec3f_set(m.pos, my_start_pos.x, my_start_pos.y, my_start_pos.z)
-
+    set_death_notice(m.playerIndex)
     -- soft_reset_camera(m.area.camera)
     -- m.area.camera.cutscene = 0
 

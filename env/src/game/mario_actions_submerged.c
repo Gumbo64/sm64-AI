@@ -195,7 +195,7 @@ u32 perform_water_step(struct MarioState *m) {
     s32 returnValue = 0;
     if (smlua_call_event_hooks_mario_param_and_int_ret_int(HOOK_BEFORE_PHYS_STEP, m, STEP_TYPE_WATER, &returnValue)) return (u32) returnValue;
 
-    if (gServerSettings.enableCheats && gCheats.superSpeed && m->playerIndex == 0) {
+    if (gServerSettings.enableCheats && gCheats.superSpeed && /*m->playerIndex == 0*/ TRUE) {
         m->vel[0] *= SUPER_SPEED_MULTIPLIER;
         m->vel[2] *= SUPER_SPEED_MULTIPLIER;
     }
@@ -601,7 +601,7 @@ static s32 act_breaststroke(struct MarioState *m) {
         reset_float_globals(m);
     }
 
-    if (m->actionTimer < 6 && m->playerIndex == 0) {
+    if (m->actionTimer < 6 && /*m->playerIndex == 0*/ TRUE) {
         func_sh_8024CA04();
     }
 
@@ -807,11 +807,11 @@ static s32 act_water_shell_swimming(struct MarioState *m) {
     }
 
     if (m->actionTimer++ == 240) {
-        if (m->heldObj != NULL && m->playerIndex == 0) {
+        if (m->heldObj != NULL && /*m->playerIndex == 0*/ TRUE) {
             m->heldObj->oInteractStatus = INT_STATUS_STOP_RIDING;
             m->heldObj = NULL;
         }
-        if (m->playerIndex == 0) { stop_shell_music(); }
+        if (/*m->playerIndex == 0*/ TRUE) { stop_shell_music(); }
         set_mario_action(m, ACT_FLUTTER_KICK, 0);
     }
 
@@ -829,7 +829,7 @@ static s32 check_water_grab(struct MarioState *m) {
     //! Heave hos have the grabbable interaction type but are not normally
     // grabbable. Since water grabbing doesn't check the appropriate input flag,
     // you can use water grab to pick up heave ho.
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
     if (m->marioObj->collidedObjInteractTypes & INTERACT_GRABBABLE) {
         struct Object *object = mario_get_collided_object(m, INTERACT_GRABBABLE);
         f32 dx = object->oPosX - m->pos[0];
@@ -909,7 +909,7 @@ static s32 act_water_punch(struct MarioState *m) {
             set_mario_animation(m, MARIO_ANIM_WATER_PICK_UP_OBJ);
             if (is_anim_at_end(m)) {
                 if (m->heldObj != NULL && m->heldObj->behavior == segmented_to_virtual(smlua_override_behavior(bhvKoopaShellUnderwater))) {
-                    if (m->playerIndex == 0) { play_shell_music(); }
+                    if (/*m->playerIndex == 0*/ TRUE) { play_shell_music(); }
                     set_mario_action(m, ACT_WATER_SHELL_SWIMMING, 0);
                 } else {
                     set_mario_action(m, ACT_HOLD_WATER_ACTION_END, 1);
@@ -954,7 +954,7 @@ static s32 act_water_shocked(struct MarioState *m) {
     if (!m) { return 0; }
     play_character_sound_if_no_flag(m, CHAR_SOUND_WAAAOOOW, MARIO_MARIO_SOUND_PLAYED);
     play_sound(SOUND_MOVING_SHOCKED, m->marioObj->header.gfx.cameraToObject);
-    if (m->playerIndex == 0) { set_camera_shake_from_hit(SHAKE_SHOCK); }
+    if (/*m->playerIndex == 0*/ TRUE) { set_camera_shake_from_hit(SHAKE_SHOCK); }
 
     if (set_mario_animation(m, MARIO_ANIM_SHOCKED) == 0) {
         m->actionTimer++;
@@ -987,7 +987,7 @@ static s32 act_drowning(struct MarioState *m) {
             set_mario_animation(m, MARIO_ANIM_DROWNING_PART2);
             m->marioBodyState->eyeState = MARIO_EYES_DEAD;
             if (m->marioObj->header.gfx.animInfo.animFrame == 30) {
-                if (m->playerIndex != 0) {
+                if (/*m->playerIndex != 0*/ FALSE) {
                     // do nothing
                 } else {
                     bool allowDeath = true;
@@ -1022,7 +1022,7 @@ static s32 act_water_death(struct MarioState *m) {
 
     set_mario_animation(m, MARIO_ANIM_WATER_DYING);
     if (set_mario_animation(m, MARIO_ANIM_WATER_DYING) == 35) {
-        if (m->playerIndex != 0) {
+        if (/*m->playerIndex != 0*/ FALSE) {
             // do nothing
         } else {
             bool allowDeath = true;
@@ -1148,7 +1148,7 @@ static s32 act_caught_in_whirlpool(struct MarioState *m) {
     if ((marioObj->oMarioWhirlpoolPosY += m->vel[1]) < 0.0f) {
         marioObj->oMarioWhirlpoolPosY = 0.0f;
         if (distance < 16.1f && m->actionTimer++ == 16) {
-            if (m->playerIndex != 0) {
+            if (/*m->playerIndex != 0*/ FALSE) {
                 // do nothing
             } else {
                 bool allowDeath = true;
@@ -1627,7 +1627,7 @@ static s32 check_common_submerged_cancels(struct MarioState *m) {
             // where your held object is the shell, but you are not in the
             // water shell swimming action. This allows you to hold the water
             // shell on land (used for cloning in DDD).
-            if (m->action == ACT_WATER_SHELL_SWIMMING && m->heldObj != NULL && m->playerIndex == 0) {
+            if (m->action == ACT_WATER_SHELL_SWIMMING && m->heldObj != NULL && /*m->playerIndex == 0*/ TRUE) {
                 m->heldObj->oInteractStatus = INT_STATUS_STOP_RIDING;
                 m->heldObj = NULL;
                 stop_shell_music();

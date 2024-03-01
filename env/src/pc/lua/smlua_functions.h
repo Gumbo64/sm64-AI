@@ -9,4 +9,5 @@ extern int gSmluaCameraIndex;
 
 
 extern Vec3f gSmluaCompassTargets[MAX_PLAYERS];
+extern int gSmluaDeathNotices[MAX_PLAYERS];
 #endif

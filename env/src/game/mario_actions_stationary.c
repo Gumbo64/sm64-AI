@@ -272,7 +272,7 @@ s32 act_start_sleeping(struct MarioState *m) {
 s32 act_sleeping(struct MarioState *m) {
     if (!m) { return 0; }
     s32 animFrame;
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         if (m->input 
             & (INPUT_NONZERO_ANALOG | INPUT_A_PRESSED | INPUT_OFF_FLOOR | INPUT_ABOVE_SLIDE
                | INPUT_FIRST_PERSON | INPUT_UNKNOWN_10 | INPUT_B_PRESSED | INPUT_Z_PRESSED)) {
@@ -294,7 +294,7 @@ s32 act_sleeping(struct MarioState *m) {
         case 0:
             animFrame = set_mario_animation(m, MARIO_ANIM_SLEEP_IDLE);
 
-            if (m->playerIndex == 0 && animFrame == -1 && !m->actionTimer) {
+            if (/*m->playerIndex == 0*/ TRUE && animFrame == -1 && !m->actionTimer) {
                 lower_background_noise(2);
             }
 
@@ -308,7 +308,7 @@ s32 act_sleeping(struct MarioState *m) {
                 m->isSnoring = TRUE;
             }
 
-            if (m->playerIndex == 0 && is_anim_at_end(m)) {
+            if (/*m->playerIndex == 0*/ TRUE && is_anim_at_end(m)) {
                 m->actionTimer++;
                 if (m->actionTimer > 45) {
                     m->actionState++;
@@ -321,7 +321,7 @@ s32 act_sleeping(struct MarioState *m) {
                 play_mario_heavy_landing_sound(m, SOUND_ACTION_TERRAIN_BODY_HIT_GROUND);
             }
 
-            if (m->playerIndex == 0 && is_anim_at_end(m)) {
+            if (/*m->playerIndex == 0*/ TRUE && is_anim_at_end(m)) {
                 m->actionState++;
             }
             break;
@@ -355,7 +355,7 @@ s32 act_waking_up(struct MarioState *m) {
 #ifndef VERSION_JP
         stop_sound(get_character(m)->soundSnoring3, m->marioObj->header.gfx.cameraToObject);
 #endif
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             raise_background_noise(2);
         }
     }
@@ -1111,14 +1111,14 @@ s32 act_first_person(struct MarioState *m) {
     s32 sp1C = (m->input & (INPUT_OFF_FLOOR | INPUT_ABOVE_SLIDE | INPUT_UNKNOWN_10)) != 0;
 
     if (m->actionState == 0) {
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             lower_background_noise(2);
             set_camera_mode(m->area->camera, CAMERA_MODE_C_UP, 0x10);
         }
         m->actionState = 1;
     } else if (!(m->input & INPUT_FIRST_PERSON) || sp1C || gOverrideFreezeCamera) {
         // LOCALSHIZ
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             raise_background_noise(2);
             // Go back to the last camera mode
             set_camera_mode(m->area->camera, -1, 1);
@@ -1142,7 +1142,7 @@ s32 act_first_person(struct MarioState *m) {
 
 s32 check_common_stationary_cancels(struct MarioState *m) {
     if (!m) { return 0; }
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
 
     if (m->pos[1] < m->waterLevel - 100) {
         if (m->action == ACT_SPAWN_SPIN_LANDING) {

@@ -145,13 +145,13 @@ envs.is_vector_env = True
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 agent = Agent(envs).to(device)
-agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM10.pt", map_location=device))
+agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM_BOB.pt", map_location=device))
 
 
 
 INIT_HP = {
     "MAX_EPISODES": 100,
-    "MAX_EPISODE_LENGTH": 5000,
+    "MAX_EPISODE_LENGTH": 750,
 }
 
 next_lstm_state = (

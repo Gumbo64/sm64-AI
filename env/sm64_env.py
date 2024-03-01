@@ -18,6 +18,7 @@ class GAME_STATE_STRUCT(ctypes.Structure):
         ("pixelsHeight",ctypes.c_int ), 
         ("pixelsWidth",ctypes.c_int ),
         ("health",ctypes.c_int),
+        ("deathNotice",ctypes.c_int),
         ("posX",ctypes.c_float),
         ("posY",ctypes.c_float),
         ("posZ",ctypes.c_float),
@@ -203,10 +204,14 @@ class SM64_ENV(ParallelEnv):
             # if i == 0:
             #     print(s.posX,s.posZ,s.velX,s.velZ)
             self.rewards[i] = (30 - ( (s.posX - goalpos[0])**2  + (s.posZ - goalpos[2])**2 )/4000000 ) / 30
+
     def make_infos(self,gameStatePointers):
         pos = [(gameStatePointers[i].contents.posX,gameStatePointers[i].contents.posY,gameStatePointers[i].contents.posZ) for i in range(self.MAX_PLAYERS)]
-        
-        self.infos = [{"pos":pos[i]} for i in range(self.MAX_PLAYERS)]
+        self.infos = []
+        for i in range(self.MAX_PLAYERS):
+            state = gameStatePointers[i].contents
+            self.infos.append({"pos":pos[i], "died":state.deathNotice == 1, "health":state.health, "heightAboveGround":state.heightAboveGround, "vel":(state.velX,state.velY,state.velZ)})
+
     
     def set_compass_targets(self, targets):
         # Convert numpy array to ctypes array

@@ -160,7 +160,7 @@ s32 set_triple_jump_action(struct MarioState *m, UNUSED u32 action, UNUSED u32 a
 
     if (m->flags & MARIO_WING_CAP) {
         return set_mario_action(m, ACT_FLYING_TRIPLE_JUMP, 0);
-    } else if (m->forwardVel > 20.0f || (gServerSettings.enableCheats && gCheats.alwaysTripleJump && m->playerIndex == 0)) {
+    } else if (m->forwardVel > 20.0f || (gServerSettings.enableCheats && gCheats.alwaysTripleJump && /*m->playerIndex == 0*/ TRUE)) {
         return set_mario_action(m, ACT_TRIPLE_JUMP, 0);
     } else {
         return set_mario_action(m, ACT_JUMP, 0);
@@ -290,7 +290,7 @@ s32 update_sliding(struct MarioState *m, f32 stopSpeed) {
     update_sliding_angle(m, accel, lossFactor);
 
     // LOCALSHIZ
-    // if (m->playerIndex == 0 && !mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
+    // if (/*m->playerIndex == 0*/ TRUE && !mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
     if (!mario_floor_is_slope(m) && m->forwardVel * m->forwardVel < stopSpeed * stopSpeed) {
         mario_set_forward_vel(m, 0.0f);
         stopped = TRUE;
@@ -486,7 +486,7 @@ void update_walking_speed(struct MarioState *m) {
     }
 
     // handles the "Super responsive controls" cheat. The content of the "else" is Mario's original code for turning around.
-    if (gServerSettings.enableCheats && gCheats.responsiveControls && m->playerIndex == 0) {
+    if (gServerSettings.enableCheats && gCheats.responsiveControls && /*m->playerIndex == 0*/ TRUE) {
         m->faceAngle[1] = m->intendedYaw;
     } else {
         m->faceAngle[1] = m->intendedYaw - approach_s32((s16)(m->intendedYaw - m->faceAngle[1]), 0, 0x800, 0x800);
@@ -1595,7 +1595,7 @@ s32 stomach_slide_action(struct MarioState *m, u32 stopAction, u32 airAction, s3
     }
 
     if (update_sliding(m, 4.0f)) {
-        if (m->playerIndex != 0) {
+        if (/*m->playerIndex != 0*/ FALSE) {
             m->input &= ~INPUT_ABOVE_SLIDE;
         }
         return set_mario_action(m, stopAction, 0);

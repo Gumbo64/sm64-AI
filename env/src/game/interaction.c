@@ -307,7 +307,7 @@ u32 attack_object(struct Object *o, s32 interaction) {
 
 void mario_stop_riding_object(struct MarioState *m) {
     if (!m) { return; }
-    if (m->riddenObj != NULL && m->playerIndex == 0) {
+    if (m->riddenObj != NULL && /*m->playerIndex == 0*/ TRUE) {
         m->riddenObj->oInteractStatus = INT_STATUS_STOP_RIDING;
         if (m->riddenObj->oSyncID != 0) {
             network_send_object_reliability(m->riddenObj, TRUE);
@@ -331,7 +331,7 @@ void mario_grab_used_object(struct MarioState *m) {
 
 void mario_drop_held_object(struct MarioState *m) {
     if (!m) { return; }
-    if (m->playerIndex != 0) { return; }
+    if (/*m->playerIndex != 0*/ FALSE) { return; }
 
     if (m->heldObj != NULL) {
         if (m->heldObj->behavior == segmented_to_virtual(smlua_override_behavior(bhvKoopaShellUnderwater))) {
@@ -361,11 +361,11 @@ void mario_drop_held_object(struct MarioState *m) {
 
 void mario_throw_held_object(struct MarioState *m) {
     if (!m) { return; }
-    if (m->playerIndex != 0) { return; }
+    if (/*m->playerIndex != 0*/ FALSE) { return; }
 
     if (m->heldObj != NULL) {
         if (m->heldObj->behavior == segmented_to_virtual(smlua_override_behavior(bhvKoopaShellUnderwater))) {
-            if (m->playerIndex == 0) { stop_shell_music(); }
+            if (/*m->playerIndex == 0*/ TRUE) { stop_shell_music(); }
         }
 
         obj_set_held_state(m->heldObj, bhvCarrySomething5);
@@ -404,7 +404,7 @@ u32 does_mario_have_normal_cap_on_head(struct MarioState *m) {
 
 void mario_blow_off_cap(struct MarioState *m, f32 capSpeed) {
     if (!m) { return; }
-    if (m->playerIndex != 0) { return; }
+    if (/*m->playerIndex != 0*/ FALSE) { return; }
     struct Object *capObject;
 
     if (does_mario_have_normal_cap_on_head(m)) {
@@ -437,7 +437,7 @@ void mario_blow_off_cap(struct MarioState *m, f32 capSpeed) {
 
 u32 mario_lose_cap_to_enemy(struct MarioState* m, u32 arg) {
     if (!m) { return FALSE; }
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
     u32 wasWearingCap = FALSE;
 
     if (does_mario_have_normal_cap_on_head(m)) {
@@ -496,7 +496,7 @@ u32 mario_check_object_grab(struct MarioState *m) {
     u32 result = FALSE;
     const BehaviorScript *script;
 
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
     if (m->interactObj == NULL || m->interactObj->oHeldState == HELD_HELD) { return FALSE; }
 
     if (m->input & INPUT_INTERACT_OBJ_GRABBABLE) {
@@ -606,7 +606,7 @@ void bounce_off_object(struct MarioState *m, struct Object *o, f32 velY) {
 void hit_object_from_below(struct MarioState *m, UNUSED struct Object *o) {
     if (!m) { return; }
     m->vel[1] = 0.0f;
-    if (m->playerIndex == 0) { set_camera_shake_from_hit(SHAKE_HIT_FROM_BELOW); }
+    if (/*m->playerIndex == 0*/ TRUE) { set_camera_shake_from_hit(SHAKE_HIT_FROM_BELOW); }
 }
 
 static u32 unused_determine_knockback_action(struct MarioState *m) {
@@ -787,7 +787,7 @@ void bounce_back_from_attack(struct MarioState *m, u32 interaction) {
             mario_set_forward_vel(m, -48.0f);
         }
 
-        if (m->playerIndex == 0) { set_camera_shake_from_hit(SHAKE_ATTACK); }
+        if (/*m->playerIndex == 0*/ TRUE) { set_camera_shake_from_hit(SHAKE_ATTACK); }
         set_mario_particle_flags(m, PARTICLE_TRIANGLE, FALSE);
     }
 
@@ -841,7 +841,7 @@ u32 take_damage_from_interact_object(struct MarioState *m) {
     
 
     queue_rumble_data_mario(m, 5, 80);
-    if (m->playerIndex == 0) { set_camera_shake_from_hit(shake); }
+    if (/*m->playerIndex == 0*/ TRUE) { set_camera_shake_from_hit(shake); }
     return damage;
 }
 
@@ -875,7 +875,7 @@ u32 take_damage_and_knock_back(struct MarioState *m, struct Object *o) {
 void reset_mario_pitch(struct MarioState *m) {
     if (!m) { return; }
     if (m->action == ACT_WATER_JUMP || m->action == ACT_SHOT_FROM_CANNON || m->action == ACT_FLYING) {
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             set_camera_mode(m->area->camera, m->area->camera->defMode, 1);
         }
         m->faceAngle[0] = 0;
@@ -1028,7 +1028,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
 
 u32 interact_bbh_entrance(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
     if (m->action != ACT_BBH_ENTER_SPIN && m->action != ACT_BBH_ENTER_JUMP) {
         mario_stop_riding_and_holding(m);
 
@@ -1220,7 +1220,7 @@ u32 get_door_save_file_flag(struct Object *door) {
 
 u32 interact_door(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
-    if (m->playerIndex != 0 && o == NULL) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE && o == NULL) { return FALSE; }
     s16 requiredNumStars = o->oBehParams >> 24;
     s16 numStars = save_file_get_total_star_count(gCurrSaveFileNum - 1, COURSE_MIN - 1, COURSE_MAX - 1);
 
@@ -1302,7 +1302,7 @@ u32 interact_door(struct MarioState *m, UNUSED u32 interactType, struct Object *
 u32 interact_cannon_base(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
     if (o->oAction != 0) { return FALSE; }
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
 
     if (m->action != ACT_IN_CANNON) {
         mario_stop_riding_and_holding(m);
@@ -1359,7 +1359,7 @@ static u8 resolve_player_collision(struct MarioState* m, struct MarioState* m2) 
             velY = fmax(fmin(55.0f, 15.0f + fabs(m->vel[1])), 35.0f);
         } else if (m->action == ACT_DOUBLE_JUMP) {
             mario_stop_riding_and_holding(m);
-            set_mario_action(m, (m->specialTripleJump && m->playerIndex == 0) ? ACT_SPECIAL_TRIPLE_JUMP : m->flags & MARIO_WING_CAP ? ACT_FLYING_TRIPLE_JUMP : ACT_TRIPLE_JUMP, 0);
+            set_mario_action(m, (m->specialTripleJump && /*m->playerIndex == 0*/ TRUE) ? ACT_SPECIAL_TRIPLE_JUMP : m->flags & MARIO_WING_CAP ? ACT_FLYING_TRIPLE_JUMP : ACT_TRIPLE_JUMP, 0);
             velY = fmax(fmin(60.0f, 20.0f + fabs(m->vel[1])), 40.0f);
         } else {
             mario_stop_riding_and_holding(m);
@@ -1486,7 +1486,7 @@ u32 interact_player_pvp(struct MarioState* attacker, struct MarioState* victim) 
 
     // grab the lag compensation version of the victim
     struct MarioState* cVictim = NULL;
-    if (victim->playerIndex == 0) {
+    if (/*victim->playerIndex == 0*/ TRUE) {
         cVictim = lag_compensation_get_local_state(&gNetworkPlayers[attacker->playerIndex]);
     }
     if (cVictim == NULL) { cVictim = victim; }
@@ -1536,7 +1536,7 @@ u32 interact_player_pvp(struct MarioState* attacker, struct MarioState* victim) 
         victim->bounceSquishTimer = max(victim->bounceSquishTimer, 20);
     }
     // LOCALSHIZ
-    // if (victim->playerIndex == 0) {
+    // if (/*victim->playerIndex == 0*/ TRUE) {
     victim->interactObj = attacker->marioObj;
     if (interaction & INT_KICK) {
         if (victim->action == ACT_FIRST_PERSON) {
@@ -1950,7 +1950,7 @@ u32 interact_breakable(struct MarioState *m, UNUSED u32 interactType, struct Obj
 
 u32 interact_koopa_shell(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
 
     if (o->oInteractStatus & INT_STATUS_INTERACTED) {
         return FALSE;
@@ -1972,7 +1972,7 @@ u32 interact_koopa_shell(struct MarioState *m, UNUSED u32 interactType, struct O
 
             attack_object(o, interaction);
             update_mario_sound_and_camera(m);
-            if (m->playerIndex == 0) { play_shell_music(); }
+            if (/*m->playerIndex == 0*/ TRUE) { play_shell_music(); }
             mario_drop_held_object(m);
 
             //! Puts Mario in ground action even when in air, making it easy to
@@ -2151,7 +2151,7 @@ u32 interact_grabbable(struct MarioState *m, u32 interactType, struct Object *o)
     if (!m || !o) { return FALSE; }
     const BehaviorScript *script = virtual_to_segmented(0x13, o->behavior);
 
-    if (m->playerIndex != 0) { return FALSE; }
+    if (/*m->playerIndex != 0*/ FALSE) { return FALSE; }
 
     if (o->oInteractionSubtype & INT_SUBTYPE_KICKABLE) {
         u32 interaction = determine_interaction(m, o);
@@ -2266,7 +2266,7 @@ u32 interact_text(struct MarioState *m, UNUSED u32 interactType, struct Object *
     if (!m || !o) { return FALSE; }
     u32 interact = FALSE;
     // bots are banned from reading SHIZ
-    if (m->playerIndex != 0){
+    if (/*m->playerIndex != 0*/ FALSE){
         return interact;
     }
     
@@ -2318,7 +2318,7 @@ void mario_process_interactions(struct MarioState *m) {
         s32 i;
         for (i = 0; i < 32; i++) {
             u32 interactType = sInteractionHandlers[i].interactType;
-            // if (m->playerIndex != 0 && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE) {
+            // if (/*m->playerIndex != 0*/ FALSE && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE) {
             //     // skip interactions for remote
             //     continue;
             // }
@@ -2373,7 +2373,7 @@ void mario_process_interactions(struct MarioState *m) {
 }
 
 void check_death_barrier(struct MarioState *m) {
-    // if (!m || m->playerIndex != 0) { return; }
+    // if (!m || /*m->playerIndex != 0*/ FALSE) { return; }
     if (!m) { return; }
 
     if (m->pos[1] < m->floorHeight + 2048.0f) {

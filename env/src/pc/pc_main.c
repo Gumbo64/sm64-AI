@@ -320,7 +320,7 @@ void cam_focus_player(int playerIndex){
     }
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
 
-    vec3f_set_dist_and_angle(campos, campos, 500, gMarioStates[playerIndex].faceAngle[0] + DEGREES(180), gMarioStates[playerIndex].faceAngle[1]);
+    vec3f_set_dist_and_angle(campos, campos, 500, 0, gMarioStates[playerIndex].faceAngle[1]+ DEGREES(180));
     campos[1] += 300;
     vec3f_copy(gLakituState.pos, campos);
     vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
@@ -339,7 +339,6 @@ void set_compass_targets(Vec3f targets[MAX_PLAYERS]){
 }
 
 void force_make_frame(int playerIndex) {
-
     cam_focus_player(playerIndex);
     if (makeOtherPlayersInvisible){
         for (int i=0; i<MAX_PLAYERS;i++){
@@ -402,31 +401,6 @@ void force_make_frame_support() {
     // CTX_BEGIN(CTX_RENDER);
     // produce_interpolation_frames_and_delay();
     // CTX_END(CTX_RENDER);
-
-}
-
-// bool doRun = false;
-void step_headless(){
-    gRenderingToggle = FALSE;
-    gfx_start_frame();
-    produce_one_frame();
-    gfx_end_frame();
-    // printf("%d\n", gMarioStates[0].health >> 8 );
-    printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
-    // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
-
-}
-void step(){
-    gRenderingToggle = FALSE;
-
-    produce_one_frame();
-
-    force_make_frame(1);
-
-
-
-    printf("%d %f %f %f\n", gGlobalTimer, gMarioStates[1].pos[0],gMarioStates[1].pos[1],gMarioStates[1].pos[2]);
-    // printf("%d\n", gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP  );
 
 }
 
@@ -510,6 +484,8 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         // + 100 because otherwise it will clip through the floor when the floor is too close (don't worry, 50 is less that mario's height)
         gGameStateStructs[i]->heightAboveGround =  gMarioStates[i].pos[1] - find_floor_height(gMarioStates[i].pos[0], gMarioStates[i].pos[1] + 50, gMarioStates[i].pos[2]);
         
+        gGameStateStructs[i]->deathNotice = gSmluaDeathNotices[i];
+        gSmluaDeathNotices[i] = 0;
 
         // the opposite of DEGREES()
         

@@ -422,7 +422,7 @@ void play_mario_sound(struct MarioState *m, s32 actionSound, s32 marioSound) {
 bool mario_can_bubble(struct MarioState* m) {
     if (!m) { return false; }
     if (!gServerSettings.bubbleDeath) { return false; }
-    if (m->playerIndex != 0) { return false; }
+    if (/*m->playerIndex != 0*/ FALSE) { return false; }
     if (m->action == ACT_BUBBLED) { return false; }
     if (!m->visibleToEnemies) { return false; }
 
@@ -442,7 +442,7 @@ bool mario_can_bubble(struct MarioState* m) {
 void mario_set_bubbled(struct MarioState* m) {
     // LOCALSHIZ
     if (!m) { return; }
-    if (m->playerIndex != 0) { return; }
+    if (/*m->playerIndex != 0*/ FALSE) { return; }
     if (m->action == ACT_BUBBLED) { return; }
 
     gLocalBubbleCounter = 20;
@@ -461,7 +461,7 @@ void mario_set_bubbled(struct MarioState* m) {
     extern s16 gCutsceneTimer;
     gCutsceneTimer = 0;
 
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         soft_reset_camera(m->area->camera);
     }
 }
@@ -872,19 +872,19 @@ void update_mario_sound_and_camera(struct MarioState *m) {
     s32 camPreset = m->area->camera->mode;
 
     if (action == ACT_FIRST_PERSON) {
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             raise_background_noise(2);
             gCameraMovementFlags &= ~CAM_MOVE_C_UP_MODE;
             // Go back to the last camera mode
             set_camera_mode(m->area->camera, -1, 1);
         }
     } else if (action == ACT_SLEEPING) {
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             raise_background_noise(2);
         }
     }
 
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         if (!(action & (ACT_FLAG_SWIMMING | ACT_FLAG_METAL_WATER))) {
             if (camPreset == CAMERA_MODE_BEHIND_MARIO || camPreset == CAMERA_MODE_WATER_SURFACE) {
                 set_camera_mode(m->area->camera, m->area->camera->defMode, 1);
@@ -1334,7 +1334,7 @@ s32 check_common_hold_action_exits(struct MarioState *m) {
  */
 s32 transition_submerged_to_walking(struct MarioState *m) {
     if (!m) { return FALSE; }
-    if (m->playerIndex == 0 && m->area && m->area->camera) {
+    if (/*m->playerIndex == 0*/ TRUE && m->area && m->area->camera) {
         set_camera_mode(m->area->camera, m->area->camera->defMode, 1);
     }
 
@@ -1369,7 +1369,7 @@ s32 set_water_plunge_action(struct MarioState *m) {
         m->faceAngle[0] = 0;
     }
 
-    if (m->playerIndex == 0 && m->area->camera->mode != CAMERA_MODE_WATER_SURFACE) {
+    if (/*m->playerIndex == 0*/ TRUE && m->area->camera->mode != CAMERA_MODE_WATER_SURFACE) {
         set_camera_mode(m->area->camera, CAMERA_MODE_WATER_SURFACE, 1);
     }
 
@@ -1443,7 +1443,7 @@ void update_mario_button_inputs(struct MarioState *m) {
 
     //// don't update remote inputs
     // DO update remote inputs :)
-    // if (m->playerIndex != 0) { return; }
+    // if (/*m->playerIndex != 0*/ FALSE) { return; }
 
     if (m->controller->buttonPressed & A_BUTTON) {
         m->input |= INPUT_A_PRESSED;
@@ -1497,7 +1497,7 @@ void update_mario_joystick_inputs(struct MarioState *m) {
 
     // don't update remote inputs past this point
     // LOCALSHIZ
-    // if ((sCurrPlayMode == PLAY_MODE_PAUSED) || m->playerIndex != 0) { return; }
+    // if ((sCurrPlayMode == PLAY_MODE_PAUSED) || /*m->playerIndex != 0*/ FALSE) { return; }
     if ((sCurrPlayMode == PLAY_MODE_PAUSED)) { return; }
 
     if (m->intendedMag > 0.0f) {
@@ -1601,10 +1601,10 @@ copyPlayerGoto:;
  */
 void update_mario_inputs(struct MarioState *m) {
     if (!m) { return; }
-    // if (m->playerIndex == 0) { m->input = 0; }
+    // if (/*m->playerIndex == 0*/ TRUE) { m->input = 0; }
     m->input = 0;
 
-    u8 localIsPaused = (m->playerIndex == 0) && (sCurrPlayMode == PLAY_MODE_PAUSED || m->freeze > 0);
+    u8 localIsPaused = (/*m->playerIndex == 0*/ TRUE) && (sCurrPlayMode == PLAY_MODE_PAUSED || m->freeze > 0);
 
     m->collidedObjInteractTypes = m->marioObj->collidedObjInteractTypes;
     m->flags &= 0xFFFFFF;
@@ -1613,7 +1613,7 @@ void update_mario_inputs(struct MarioState *m) {
     update_mario_joystick_inputs(m);
 
     // prevent any inputs when paused
-    if ((m->playerIndex == 0) && (sCurrPlayMode == PLAY_MODE_PAUSED || m->freeze > 0)) {
+    if ((/*m->playerIndex == 0*/ TRUE) && (sCurrPlayMode == PLAY_MODE_PAUSED || m->freeze > 0)) {
         m->input = 0;
         m->intendedMag = 0;
     }
@@ -1622,7 +1622,7 @@ void update_mario_inputs(struct MarioState *m) {
 
     debug_print_speed_action_normal(m);
 
-    if (gServerSettings.enableCheats && gCheats.moonJump && m->playerIndex == 0 && m->controller->buttonDown & L_TRIG) {
+    if (gServerSettings.enableCheats && gCheats.moonJump && /*m->playerIndex == 0*/ TRUE && m->controller->buttonDown & L_TRIG) {
         if (m->action == ACT_FORWARD_GROUND_KB ||
             m->action == ACT_BACKWARD_GROUND_KB ||
             m->action == ACT_SOFT_FORWARD_GROUND_KB ||
@@ -1642,7 +1642,7 @@ void update_mario_inputs(struct MarioState *m) {
     /* Developer stuff */
 #ifdef DEVELOPMENT
     if (gNetworkSystem == &gNetworkSystemSocket) {
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             if (m->action != ACT_DEBUG_FREE_MOVE && m->controller->buttonPressed & L_TRIG && m->controller->buttonDown & Z_TRIG) {
                 set_mario_action(m, ACT_DEBUG_FREE_MOVE, 0);
                 m->marioObj->oTimer = 0;
@@ -1656,7 +1656,7 @@ void update_mario_inputs(struct MarioState *m) {
         lvl_skip_credits();
     }
     // LOCALSHIZ
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         if (!localIsPaused && (gCameraMovementFlags & CAM_MOVE_C_UP_MODE)) {
             if (m->action & ACT_FLAG_ALLOW_FIRST_PERSON) {
                 m->input |= INPUT_FIRST_PERSON;
@@ -1704,15 +1704,15 @@ void set_submerged_cam_preset_and_spawn_bubbles(struct MarioState *m) {
         camPreset = m->area->camera->mode;
 
         if (m->action & ACT_FLAG_METAL_WATER) {
-            if (m->playerIndex == 0 && camPreset != CAMERA_MODE_CLOSE) {
+            if (/*m->playerIndex == 0*/ TRUE && camPreset != CAMERA_MODE_CLOSE) {
                 set_camera_mode(m->area->camera, CAMERA_MODE_CLOSE, 1);
             }
         } else {
-            if (m->playerIndex == 0 && (heightBelowWater > 800.0f) && (camPreset != CAMERA_MODE_BEHIND_MARIO)) {
+            if (/*m->playerIndex == 0*/ TRUE && (heightBelowWater > 800.0f) && (camPreset != CAMERA_MODE_BEHIND_MARIO)) {
                 set_camera_mode(m->area->camera, CAMERA_MODE_BEHIND_MARIO, 1);
             }
 
-            if (m->playerIndex == 0 && (heightBelowWater < 400.0f) && (camPreset != CAMERA_MODE_WATER_SURFACE)) {
+            if (/*m->playerIndex == 0*/ TRUE && (heightBelowWater < 400.0f) && (camPreset != CAMERA_MODE_WATER_SURFACE)) {
                 set_camera_mode(m->area->camera, CAMERA_MODE_WATER_SURFACE, 1);
             }
 
@@ -1781,7 +1781,7 @@ void update_mario_health(struct MarioState *m) {
             m->health = 0xFF;
         }
 
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             // Play a noise to alert the player when Mario is close to drowning.
             if (((m->action & ACT_GROUP_MASK) == ACT_GROUP_SUBMERGED) && (m->health < 0x300)) {
                 play_sound(SOUND_MOVING_ALMOST_DROWNING, gGlobalSoundSource);
@@ -2390,9 +2390,11 @@ void init_mario_from_save_file(void) {
 
 void set_mario_particle_flags(struct MarioState* m, u32 flags, u8 clear) {
     if (!m) { return; }
-    if (m->playerIndex != 0) {
-        return;
-    }
+    // LOCALSHIZ particles don't clear properly for remote players unfortunately, disabled instead
+    return;
+    // if (m->playerIndex != 0) {
+    //     return;
+    // }
 
     if (clear) {
         m->particleFlags &= ~flags;

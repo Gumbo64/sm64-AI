@@ -808,10 +808,12 @@ void load_object_collision_model(void) {
         }
     }
 
-    f32 marioDist = dist_between_objects(gCurrentObject, gMarioStates[0].marioObj);
-    if (marioDist < gCurrentObject->oDrawingDistance * draw_distance_scalar()) {
-        gCurrentObject->header.gfx.node.flags |= GRAPH_RENDER_ACTIVE;
-    } else {
-        gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_ACTIVE;
-    }
+    // make everything visible, no bias for mario 0
+
+    // f32 marioDist = dist_between_objects(gCurrentObject, gMarioStates[0].marioObj);
+    // if (marioDist < gCurrentObject->oDrawingDistance * draw_distance_scalar()) {
+    gCurrentObject->header.gfx.node.flags |= GRAPH_RENDER_ACTIVE;
+    // } else {
+        // gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_ACTIVE;
+    // }
 }

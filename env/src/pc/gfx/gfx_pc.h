@@ -38,6 +38,7 @@ struct gameStateStruct {
     int pixelsWidth;
     int pixelsHeight;
     int health;
+    int deathNotice;
     float posX;
     float posY;
     float posZ;

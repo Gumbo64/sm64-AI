@@ -343,7 +343,7 @@ s32 perform_hanging_step(struct MarioState *m, Vec3f nextPos) {
     s32 returnValue = 0;
     if (smlua_call_event_hooks_mario_param_and_int_ret_int(HOOK_BEFORE_PHYS_STEP, m, STEP_TYPE_HANG, &returnValue)) return returnValue;
 
-    if (gServerSettings.enableCheats && gCheats.superSpeed && m->playerIndex == 0) {
+    if (gServerSettings.enableCheats && gCheats.superSpeed && /*m->playerIndex == 0*/ TRUE) {
         m->vel[0] *= SUPER_SPEED_MULTIPLIER;
         m->vel[2] *= SUPER_SPEED_MULTIPLIER;
     }
@@ -731,7 +731,7 @@ s32 act_grabbed(struct MarioState *m) {
 
     // check if they should still be grabbed
     // LOCALSHIZ
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         // check if the object holding me is being held
         u8 heldObjIsHeld = FALSE;
         if (m->heldByObj != NULL) {
@@ -1002,7 +1002,7 @@ static struct MarioState* nearest_antibubble_mario_state_to_object(struct Object
 
 s32 act_bubbled(struct MarioState* m) {
     if (!m) { return 0; }
-    if (m->playerIndex == 0 && m->area->camera->mode == CAMERA_MODE_WATER_SURFACE) {
+    if (/*m->playerIndex == 0*/ TRUE && m->area->camera->mode == CAMERA_MODE_WATER_SURFACE) {
         set_camera_mode(m->area->camera, CAMERA_MODE_FREE_ROAM, 1);
     }
     struct MarioState* targetMarioState = nearest_antibubble_mario_state_to_object(m->marioObj);
@@ -1016,7 +1016,7 @@ s32 act_bubbled(struct MarioState* m) {
     s32 distanceToPlayer = dist_between_objects(m->marioObj, target);
 
     // trigger warp if all are bubbled
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         u8 allInBubble = TRUE;
         for (s32 i = 0; i < MAX_PLAYERS; i++) {
             if (!is_player_active(&gMarioStates[i])) { continue; }
@@ -1096,7 +1096,7 @@ s32 act_bubbled(struct MarioState* m) {
     bubbled_offset_visual(m);
 
     // make invisible on -1 lives
-    if (m->playerIndex == 0) {
+    if (/*m->playerIndex == 0*/ TRUE) {
         if (m->numLives <= -1) {
             m->marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
             level_trigger_warp(m, WARP_OP_DEATH);
@@ -1109,7 +1109,7 @@ s32 act_bubbled(struct MarioState* m) {
     if (gLocalBubbleCounter > 0) { gLocalBubbleCounter--; }
 
     // pop bubble
-    if (m->playerIndex == 0 && distanceToPlayer < 120 && is_player_active(targetMarioState) && m->numLives != -1 && gLocalBubbleCounter == 0) {
+    if (/*m->playerIndex == 0*/ TRUE && distanceToPlayer < 120 && is_player_active(targetMarioState) && m->numLives != -1 && gLocalBubbleCounter == 0) {
         m->marioObj->activeFlags &= ~ACTIVE_FLAG_MOVE_THROUGH_GRATE;
         m->hurtCounter = 0;
         m->healCounter = 31;
@@ -1120,7 +1120,7 @@ s32 act_bubbled(struct MarioState* m) {
         m->vel[1] = 0.0f;
         m->marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
         m->invincTimer = 30 * 3;
-        if (m->playerIndex == 0) {
+        if (/*m->playerIndex == 0*/ TRUE) {
             soft_reset_camera(m->area->camera);
         }
         u8 underWater = (m->pos[1] < ((f32)m->waterLevel));

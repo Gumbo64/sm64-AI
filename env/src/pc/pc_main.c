@@ -93,7 +93,7 @@ f64 gGameSpeed = 1.0f; // TODO: should probably remove
 
 struct gameStateStruct* gGameStateStructs[MAX_PLAYERS] = { NULL };
 bool gRenderingToggle = FALSE;
-bool gHideAndSeekMode = FALSE;
+bool hideAndSeekMode = FALSE;
 bool makeOtherPlayersInvisible = FALSE;
 
 // 1 is true, 0 is false
@@ -313,22 +313,26 @@ void cam_focus_player(int playerIndex){
     gNoCamUpdate = TRUE;
     Vec3f campos;
     gSmluaCameraIndex = playerIndex;
-    if (gHideAndSeekMode){
+    if (hideAndSeekMode){
         vec3f_copy(gSmluaCompassTargets[playerIndex], gMarioStates[( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS ].pos);
     }else{
         vec3f_set(gSmluaCompassTargets[playerIndex],0,0,0);
     }
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
 
-    vec3f_set_dist_and_angle(campos, campos, 500, 0, gMarioStates[playerIndex].faceAngle[1]+ DEGREES(180));
-    campos[1] += 300;
-    vec3f_copy(gLakituState.pos, campos);
-    vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
-
-    // vec3f_copy(gLakituState.curPos, campos);
-    // vec3f_copy(gLakituState.curFocus, gMarioStates[playerIndex].pos);
-    
-    gFOVState.fov = 60;
+    if (gTopDownCamera) {
+        campos[1] += 400;
+        campos[2] += 1;
+        vec3f_copy(gLakituState.pos, campos);
+        vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
+        gFOVState.fov = 160;
+    } else {
+        vec3f_set_dist_and_angle(campos, campos, 500, 0, gMarioStates[playerIndex].faceAngle[1]+ DEGREES(180));
+        campos[1] += 300;
+        vec3f_copy(gLakituState.pos, campos);
+        vec3f_copy(gLakituState.focus, gMarioStates[playerIndex].pos);
+        gFOVState.fov = 60;
+    }
     gHudDisplay.lives = gGlobalTimer;
 }
 
@@ -343,7 +347,7 @@ void force_make_frame(int playerIndex) {
     if (makeOtherPlayersInvisible){
         for (int i=0; i<MAX_PLAYERS;i++){
             // if you are rendering yourself OR you are rendering your chaser/evader
-            if (i == playerIndex || ( gHideAndSeekMode && i == ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS )  ){
+            if (i == playerIndex || ( hideAndSeekMode && i == ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS )  ){
                 gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
             }else{
                 gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
@@ -507,11 +511,12 @@ void makemariolol(){
 }
 extern int gImgHeight;
 extern int gImgWidth;
-void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode,bool compassEnabled, int renderWidth,int renderHeight) {
+void main_func(char *relGameDir, char *relUserPath, bool invisible, int collision_type, bool seekMode,bool compassEnabled, int renderWidth,int renderHeight, bool topDownCamera, char* configLanguage) {
     gImgHeight = renderHeight;
     gImgWidth = renderWidth;
+    gTopDownCamera = topDownCamera;
     makeOtherPlayersInvisible = invisible;
-    gHideAndSeekMode = seekMode;
+    hideAndSeekMode = seekMode;
     gDjuiDisabled = !compassEnabled;
 
     // Ensure it is a server, avoid CLI options

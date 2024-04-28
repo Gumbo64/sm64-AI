@@ -53,7 +53,7 @@
 u32 unused80339F10;
 s8 filler80339F1C[20];
 u16 gLocalBubbleCounter = 0;
-
+bool gTopDownCamera = TRUE;
 
 /**************************************************
  *                    ANIMATIONS                  *
@@ -1511,8 +1511,12 @@ void update_mario_joystick_inputs(struct MarioState *m) {
 // #endif
 
         // AISHIZ
-        // for AI, make stick relative to mario's face angle instead of camera jank
-        m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->faceAngle[1] + DEGREES(180);
+        // for AI, make stick relative to mario's face angle instead of camera jank if not in topdown mode
+        if (gTopDownCamera) {
+            m->intendedYaw = atan2s(-controller->stickY, controller->stickX);
+        } else {
+            m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->faceAngle[1] + DEGREES(180);
+        }
 
         m->input |= INPUT_NONZERO_ANALOG;
     } else {

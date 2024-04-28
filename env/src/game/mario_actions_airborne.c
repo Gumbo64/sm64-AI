@@ -511,7 +511,7 @@ s32 act_double_jump(struct MarioState *m) {
 s32 act_triple_jump(struct MarioState *m) {
     if (!m) { return 0; }
     // LOCALSHIZ
-    // if (m == &gMarioStates[0] && m->specialTripleJump) {
+    // if (/*m == &gMarioStates[0]*/ TRUE && m->specialTripleJump) {
     if (m->specialTripleJump) {
         return set_mario_action(m, ACT_SPECIAL_TRIPLE_JUMP, 0);
     }
@@ -1909,7 +1909,7 @@ s32 act_flying(struct MarioState *m) {
 
         if (is_anim_at_end(m)) {
             if (m->actionArg == 2) {
-                if (m == &gMarioStates[0]) {
+                if (/*m == &gMarioStates[0]*/ TRUE) {
                     load_level_init_text(0);
                 }
                 m->actionArg = 1;

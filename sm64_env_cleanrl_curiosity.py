@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-
+import multiprocessing
 from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import tqdm
 
@@ -44,7 +44,7 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=50000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=3e-5,
+    parser.add_argument("--learning-rate", type=float, default=2.5e-5,
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
@@ -66,7 +66,7 @@ def parse_args():
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
-    parser.add_argument("--ent-coef", type=float, default=0.001,
+    parser.add_argument("--ent-coef", type=float, default=0.004,
         help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=0.5,
         help="coefficient of the value function")
@@ -92,7 +92,7 @@ class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
         self.network = nn.Sequential(
-            # 4 frame stack so that is the first number
+            # No frame stack so 1 is the first number
             layer_init(nn.Conv2d(1, 256, 8, stride=2)),
             nn.MaxPool2d(kernel_size=4, stride=2),
             nn.LeakyReLU(),
@@ -215,16 +215,15 @@ if __name__ == "__main__":
     envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
-    # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
+    n_cpus = multiprocessing.cpu_count()
 
-    envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
+    envs = ss.concat_vec_envs_v1(envs, n_cpus, num_cpus=n_cpus, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
     envs.single_action_space = envs.action_space
     envs.is_vector_env = True
 
     args = parse_args()
-    args.num_envs = env.MAX_PLAYERS
+    args.num_envs = env.MAX_PLAYERS * n_cpus
 
 
     args.batch_size = int(args.num_envs * args.num_steps)
@@ -263,7 +262,7 @@ if __name__ == "__main__":
 
     agent = Agent(envs).to(device)
     # if you want to load a model
-    agent.load_state_dict(torch.load(f"trained_models/agentCuriosity_BITDW_41.6h.pt", map_location=device))
+    agent.load_state_dict(torch.load(f"trained_models/agentCuriosity_BITDW_70.1h+13.1h.pt", map_location=device))
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup

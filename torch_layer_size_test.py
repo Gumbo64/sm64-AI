@@ -20,7 +20,7 @@ network = nn.Sequential(
 
 
 )
-height = 128
-width = 72
+height = 84
+width = 84
 channels = 1
 print(network(torch.zeros((1, channels, height, width))).shape)

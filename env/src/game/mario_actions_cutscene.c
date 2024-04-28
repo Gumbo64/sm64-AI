@@ -539,7 +539,7 @@ s32 act_reading_automatic_dialog(struct MarioState *m) {
         // set Mario dialog
         if (m->actionState == 9) {
             // only show dialog for local player
-            if (m == &gMarioStates[0]) {
+            if (/*m == &gMarioStates[0]*/ TRUE) {
                 // LOCALSHIZ
                 u32 actionArg = m->actionArg;
                 if (GET_HIGH_U16_OF_32(actionArg) == 0) {
@@ -591,7 +591,7 @@ s32 act_reading_sign(struct MarioState *m) {
     switch (m->actionState) {
         // start dialog
         case 0:
-            if (m == &gMarioStates[0]) {
+            if (/*m == &gMarioStates[0]*/ TRUE) {
                 trigger_cutscene_dialog(1);
             }
             enable_time_stop_if_alone();
@@ -606,7 +606,7 @@ s32 act_reading_sign(struct MarioState *m) {
             m->pos[2] += marioObj->oMarioReadingSignDPosZ / 11.0f;
             // create the text box
             if (m->actionTimer++ == 10) {
-                if (m == &gMarioStates[0] && m->usedObj != NULL) {
+                if (/*m == &gMarioStates[0]*/ TRUE && m->usedObj != NULL) {
                     create_dialog_inverted_box(m->usedObj->oBehParams2ndByte);
                 }
                 m->actionState = 2;
@@ -762,7 +762,7 @@ void general_star_dance_handler(struct MarioState *m, s32 isInWater) {
 
 s32 act_star_dance(struct MarioState *m) {
     if (!m) { return 0; }
-    if (m == &gMarioStates[0]) {
+    if (/*m == &gMarioStates[0]*/ TRUE) {
         m->faceAngle[1] = m->area->camera->yaw;
     }
     set_mario_animation(m, m->actionState == 2 ? MARIO_ANIM_RETURN_FROM_STAR_DANCE : MARIO_ANIM_STAR_DANCE);
@@ -776,7 +776,7 @@ s32 act_star_dance(struct MarioState *m) {
 
 s32 act_star_dance_water(struct MarioState *m) {
     if (!m) { return 0; }
-    if (m == &gMarioStates[0]) {
+    if (/*m == &gMarioStates[0]*/ TRUE) {
         m->faceAngle[1] = m->area->camera->yaw;
     }
     set_mario_animation(m, m->actionState == 2 ? MARIO_ANIM_RETURN_FROM_WATER_STAR_DANCE : MARIO_ANIM_WATER_STAR_DANCE);
@@ -1227,7 +1227,7 @@ s32 act_spawn_spin_airborne(struct MarioState *m) {
     if (!m) { return 0; }
     // entered water, exit action
     if (m->pos[1] < m->waterLevel - 100) {
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             load_level_init_text(0);
         }
         return set_water_plunge_action(m);
@@ -1259,7 +1259,7 @@ s32 act_spawn_spin_landing(struct MarioState *m) {
     stop_and_set_height_to_floor(m);
     set_mario_animation(m, MARIO_ANIM_GENERAL_LAND);
     if (is_anim_at_end(m)) {
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             load_level_init_text(0);
         }
         set_mario_action(m, ACT_IDLE, 0);
@@ -1312,7 +1312,7 @@ s32 act_exit_land_save_dialog(struct MarioState *m) {
         case 0:
             set_mario_animation(m, m->actionArg == 0 ? MARIO_ANIM_GENERAL_LAND : MARIO_ANIM_LAND_FROM_SINGLE_JUMP);
             // only allow for local player
-            if (m == &gMarioStates[0] && is_anim_past_end(m)) {
+            if (/*m == &gMarioStates[0]*/ TRUE && is_anim_past_end(m)) {
                 if (gLastCompletedCourseNum != COURSE_BITDW && gLastCompletedCourseNum != COURSE_BITFS) {
                     enable_time_stop_if_alone();
                 }
@@ -1348,7 +1348,7 @@ s32 act_exit_land_save_dialog(struct MarioState *m) {
                     // no break
             }
             // only allow for local player
-            if (m == &gMarioStates[0]) { handle_save_menu(m); }
+            if (/*m == &gMarioStates[0]*/ TRUE) { handle_save_menu(m); }
             break;
         // exit without cap
         case 2:
@@ -1361,7 +1361,7 @@ s32 act_exit_land_save_dialog(struct MarioState *m) {
             }
 
             // only allow for local player
-            if (m == &gMarioStates[0]) { handle_save_menu(m); }
+            if (/*m == &gMarioStates[0]*/ TRUE) { handle_save_menu(m); }
             break;
         // exit with cap
         case 3:
@@ -1380,7 +1380,7 @@ s32 act_exit_land_save_dialog(struct MarioState *m) {
                     break;
             }
             // only allow for local player
-            if (m == &gMarioStates[0]) { handle_save_menu(m); }
+            if (/*m == &gMarioStates[0]*/ TRUE) { handle_save_menu(m); }
             break;
     }
 
@@ -1501,7 +1501,7 @@ s32 act_spawn_no_spin_landing(struct MarioState *m) {
     set_mario_animation(m, MARIO_ANIM_GENERAL_LAND);
     stop_and_set_height_to_floor(m);
     if (is_anim_at_end(m)) {
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             load_level_init_text(0);
         }
         set_mario_action(m, ACT_IDLE, 0);
@@ -1647,7 +1647,7 @@ s32 act_teleport_fade_out(struct MarioState *m) {
     }
 
     if (m->actionTimer++ == 20) {
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             // only do for local player
             level_trigger_warp(m, WARP_OP_TELEPORT);
         }
@@ -1738,7 +1738,7 @@ s32 act_squished(struct MarioState *m) {
             if (spaceUnderCeil > 160.0f) {
                 m->squishTimer = 0;
                 // prevent infinite loop for remote players
-                // if (m == &gMarioStates[0]) {
+                // if (/*m == &gMarioStates[0]*/ TRUE) {
                 //     return set_mario_action(m, ACT_IDLE, 0);
                 // } 
                 // else {

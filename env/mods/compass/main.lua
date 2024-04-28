@@ -4,8 +4,8 @@
 -- description: 
 -- incompatible: compass
 
--- gLevelValues.entryLevel = LEVEL_BOB
-gLevelValues.entryLevel = LEVEL_BITDW
+gLevelValues.entryLevel = LEVEL_BOB
+-- gLevelValues.entryLevel = LEVEL_BITDW
 local my_start_pos = {x = 0, y = 0, z = 0}
 
 function s16(num)

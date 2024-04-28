@@ -1,0 +1,143 @@
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import supersuit as ss
+# from env.sm64_env_tag import SM64_ENV_TAG
+from env.sm64_env import SM64_ENV
+from tqdm import trange
+import copy
+# c for config
+import wandb
+import time
+from torch.utils.tensorboard import SummaryWriter
+
+run_name = f"SM64_EVO_{int(time.time())}"
+
+wandb.init(
+    project="evo_strategies",
+    entity=None,
+    sync_tensorboard=True,
+    config=None,
+    name=run_name,
+    monitor_gym=True,
+    save_code=True,
+)
+writer = SummaryWriter(wandb.run.dir)
+
+torch.autograd.set_grad_enabled(False)
+
+c = {
+    "MAX_EPISODES": 1000000,
+    "MAX_EPISODE_LENGTH": 80,
+    # "NUM_POLICIES": 20,
+    "LEARNING_RATE":0.001,
+    "SIGMA":0.1
+}
+
+def param_noise():
+    return [np.random.normal(loc=0,scale=1.0,size=layer_param_size) for layer_param_size in c["P_PARAMS_SIZE"]]
+
+# normalise
+def image_pre_process(x):
+    x = x.clone()
+    x /= 255.0
+    # print(x.size())
+    return x.unsqueeze(0)
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+
+class Policy(nn.Module):
+    def __init__(self, envs):
+        super().__init__()
+        self.network = nn.Sequential(
+            # 4 frame stack so that is the first number
+            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+
+            # 3840 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
+            layer_init(nn.Linear(3840, 1024)),
+            nn.ReLU(),
+            layer_init(nn.Linear(1024, 1024)),
+            nn.ReLU(),
+            layer_init(nn.Linear(1024, envs.single_action_space.n)),
+        )
+
+    def add_param_noise(self, param_noise, multiplier=1.0):
+        with torch.no_grad():
+            for param, noise in zip(self.parameters(), param_noise):
+                param.data += torch.tensor(noise).to(device) * multiplier
+        return self
+
+    def forward(self, x):
+        y = image_pre_process(x)
+        return self.network(y)
+
+    
+# Can test either of these
+env = SM64_ENV(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True)
+c["NUM_POLICIES"] = env.MAX_PLAYERS
+# env = SM64_ENV_TAG(FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True)
+
+envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+envs = ss.color_reduction_v0(envs, mode="full")
+# env = ss.resize_v1(env, x_size=128, y_size=72)
+envs = ss.frame_stack_v1(envs, 4,stack_dim=0)
+envs = ss.black_death_v3(envs)
+envs = ss.pettingzoo_env_to_vec_env_v1(envs)
+envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
+envs.single_observation_space = envs.observation_space
+envs.single_action_space = envs.action_space
+envs.is_vector_env = True
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+mainPolicy = Policy(envs).to(device)
+c["P_PARAMS_SIZE"] = [p.size() for p in mainPolicy.parameters()]
+
+start_time = time.time()
+for idx_epi in trange(c["MAX_EPISODES"]):
+    # eps = np.random.randn(NumPolicies,NumWeights1+NumWeights2)
+    eps = [param_noise() for _ in range(c["NUM_POLICIES"])]
+    policies = [copy.deepcopy(mainPolicy).add_param_noise(eps[i],multiplier=c["SIGMA"]) for i in range(c["NUM_POLICIES"])]
+    total_rewards = np.zeros(c["NUM_POLICIES"])
+    
+    o, _ = envs.reset()
+    next_obs = torch.Tensor(o).to(device)
+
+    for k in trange(c["MAX_EPISODE_LENGTH"],leave=False):
+        action_probs = [policies[i].forward(next_obs[i]).cpu().numpy() for i in range(c["NUM_POLICIES"])]
+        actions = [np.argmax(action_probs[i]) for i in range(c["NUM_POLICIES"])]
+        observations, rewards, terminations, truncations, infos = envs.step(actions)
+        next_obs = torch.Tensor(o).to(device)
+
+        total_rewards += np.array(rewards)
+
+    global_step = idx_epi * c["MAX_EPISODE_LENGTH"] * c["NUM_POLICIES"]
+    writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+    writer.add_scalar("charts/avg_reward", np.max(total_rewards)/c["MAX_EPISODE_LENGTH"], global_step)
+    if k % 20 == 0:
+        torch.save(mainPolicy.state_dict(), f"{wandb.run.dir}/agent.pt")
+        wandb.save(f"{wandb.run.dir}/agent.pt", policy="now")
+
+    for i in range(c["NUM_POLICIES"]):
+        vec_multiplier = c["LEARNING_RATE"]/(c["NUM_POLICIES"]*c["SIGMA"]) * (total_rewards[i] - np.mean(total_rewards))
+        mainPolicy.add_param_noise(eps[i], multiplier=vec_multiplier)
+
+
+
+    
+    
+
+print("Passed test :)")
+
+

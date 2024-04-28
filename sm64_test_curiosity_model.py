@@ -1,4 +1,5 @@
-from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
+# from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
+from env.sm64_env_curiosity_transitions import SM64_ENV_CURIOSITY
 from tqdm import tqdm
 import supersuit as ss
 import torch
@@ -127,16 +128,15 @@ ACTION_BOOK = [
     # ["noStick",False,False,True],
 ]
 # env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5, ACTION_BOOK=ACTION_BOOK, IMG_WIDTH=512,IMG_HEIGHT=288)
-env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5, ACTION_BOOK=ACTION_BOOK)
+env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK,
+                        #  NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=400, NODE_MAX_HEIGHT_ABOVE_GROUND=1000,
+                            MAKE_OTHER_PLAYERS_INVISIBLE=True)
 envs = ss.black_death_v3(env)
-
-envs = ss.resize_v1(envs, x_size=128, y_size=72)
-envs = ss.clip_reward_v0(envs, lower_bound=0, upper_bound=1)
+# dont clip rewards idk the bounds really
+envs = ss.clip_reward_v0(envs, lower_bound=-1, upper_bound=1)
 envs = ss.color_reduction_v0(envs, mode="full")
 envs = ss.frame_stack_v1(envs, 1)
 envs = ss.pettingzoo_env_to_vec_env_v1(envs)
-
-envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
 
 envs.single_observation_space = envs.observation_space
 envs.single_action_space = envs.action_space
@@ -151,7 +151,7 @@ agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM_BOB.pt", ma
 
 INIT_HP = {
     "MAX_EPISODES": 100,
-    "MAX_EPISODE_LENGTH": 750,
+    "MAX_EPISODE_LENGTH": 200,
 }
 
 next_lstm_state = (

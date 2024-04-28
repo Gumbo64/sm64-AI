@@ -29,7 +29,7 @@ class SM64_ENV_TAG(SM64_ENV):
         return super().render(mode="tag")
 
     
-    def calc_rewards(self, gameStatePointers):
+    def calc_agent_rewards(self, gameStatePointers):
         assert self.MAX_PLAYERS % 2 == 0
         for i in range(int(self.MAX_PLAYERS//2)):
             hiderIndex = i

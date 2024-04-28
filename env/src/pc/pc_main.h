@@ -4,8 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern bool gHideAndSeekMode;
+#include "game/mario.h"
 
 extern struct GfxWindowManagerAPI* wm_api;
 void game_deinit(void);

@@ -63,7 +63,7 @@ class SM64_ENV_RRT(SM64_ENV):
             
 
 
-    def calc_rewards(self, gameStatePointers):
+    def calc_agent_rewards(self, gameStatePointers):
         # print(gameStatePointers[0].contents.posX, gameStatePointers[0].contents.posY, gameStatePointers[0].contents.posZ)
         for player in range(self.MAX_PLAYERS):
             state = gameStatePointers[player].contents

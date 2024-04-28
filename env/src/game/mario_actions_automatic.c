@@ -815,7 +815,7 @@ s32 act_in_cannon(struct MarioState *m) {
 
                 extern struct MarioState gMarioStates[];
                 // LOCALSHIZ
-                if (m->input & INPUT_A_PRESSED && m == &gMarioStates[0]) {
+                if (m->input & INPUT_A_PRESSED && /*m == &gMarioStates[0]*/ TRUE) {
                     m->forwardVel = 100.0f * coss(m->faceAngle[0]);
 
                     m->vel[1] = 100.0f * sins(m->faceAngle[0]);

@@ -7,6 +7,7 @@
 #include "types.h"
 
 extern u16 gLocalBubbleCounter;
+extern bool gTopDownCamera;
 struct WallCollisionData;
 
 s32 is_anim_at_end(struct MarioState *m);

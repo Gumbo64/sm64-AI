@@ -990,7 +990,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
 
         starIndex = (o->oBehParams >> 24) & 0x1F;
 
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             // sync the star collection
             network_send_collect_star(o, m->numCoins, starIndex);
         }
@@ -2365,7 +2365,7 @@ void mario_process_interactions(struct MarioState *m) {
         sDisplayingDoorText = FALSE;
     }
     if (!(m->marioObj->collidedObjInteractTypes & INTERACT_WARP)) {
-        if (m == &gMarioStates[0]) {
+        if (/*m == &gMarioStates[0]*/ TRUE) {
             // limit to only local mario
             sJustTeleported = FALSE;
         }

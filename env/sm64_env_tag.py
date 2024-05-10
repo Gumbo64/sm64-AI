@@ -8,12 +8,12 @@ def smallest_angle_between(angle1, angle2):
     return angle
 
 class SM64_ENV_TAG(SM64_ENV):
-    def __init__(self, FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=True, PLAYER_COLLISION_TYPE=0, AUTO_RESET=False, N_RENDER_COLUMNS=2, render_mode="forced", COMPASS_ENABLED=True, HIDE_AND_SEEK_MODE=True, IMG_WIDTH=128, IMG_HEIGHT=72, ACTION_BOOK=[]):
+    def __init__(self,**kwargs):
         # placeholder
         self.prev_distances = [0 for _ in range(2000)]
         self.prev_angle_differences = [0 for _ in range(2000)]
 
-        super(SM64_ENV_TAG,self).__init__(FRAME_SKIP=FRAME_SKIP, MAKE_OTHER_PLAYERS_INVISIBLE=MAKE_OTHER_PLAYERS_INVISIBLE, PLAYER_COLLISION_TYPE=PLAYER_COLLISION_TYPE, AUTO_RESET=AUTO_RESET, N_RENDER_COLUMNS=N_RENDER_COLUMNS, render_mode=render_mode, HIDE_AND_SEEK_MODE=HIDE_AND_SEEK_MODE,COMPASS_ENABLED=COMPASS_ENABLED, IMG_WIDTH=IMG_WIDTH, IMG_HEIGHT=IMG_HEIGHT, ACTION_BOOK=ACTION_BOOK)
+        super(SM64_ENV_TAG,self).__init__(**kwargs)
         self.agents = [f"hider_{k}" if k < self.MAX_PLAYERS//2 else f"seeker_{k-self.MAX_PLAYERS//2}" for k in range(self.MAX_PLAYERS) ]
         self.possible_agents = self.agents
 

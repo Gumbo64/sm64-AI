@@ -1,11 +1,13 @@
 # from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
-from env.sm64_env_curiosity_transitions import SM64_ENV_CURIOSITY
+from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import tqdm
 import supersuit as ss
 import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 import numpy as np
+from env.sm64_env_render_grid import SM64_ENV_RENDER_GRID
+# import multiprocessing
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -127,52 +129,61 @@ ACTION_BOOK = [
     # # Groundpound
     # ["noStick",False,False,True],
 ]
-# env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=5, ACTION_BOOK=ACTION_BOOK, IMG_WIDTH=512,IMG_HEIGHT=288)
-env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK,
-                        #  NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=400, NODE_MAX_HEIGHT_ABOVE_GROUND=1000,
-                            MAKE_OTHER_PLAYERS_INVISIBLE=True)
-envs = ss.black_death_v3(env)
-# dont clip rewards idk the bounds really
-envs = ss.clip_reward_v0(envs, lower_bound=-1, upper_bound=1)
-envs = ss.color_reduction_v0(envs, mode="full")
-envs = ss.frame_stack_v1(envs, 1)
-envs = ss.pettingzoo_env_to_vec_env_v1(envs)
+if __name__ == "__main__":
+    INIT_HP = {
+        "MAX_EPISODES": 1,
+        "MAX_EPISODE_LENGTH": 3000,
+        "N_RENDER_COLUMNS": 5,
+        "IMAGE_SCALE_FACTOR": 1,
+    }
+        
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK,
+                                NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=400, NODE_MAX_HEIGHT_ABOVE_GROUND=1000,
+                                MAKE_OTHER_PLAYERS_INVISIBLE=False, IMG_WIDTH=128 * INIT_HP["IMAGE_SCALE_FACTOR"], IMG_HEIGHT=72 * INIT_HP["IMAGE_SCALE_FACTOR"])
+    envs = ss.black_death_v3(env)
+    envs = ss.clip_reward_v0(envs, lower_bound=-1, upper_bound=1)
+    # envs = ss.color_reduction_v0(envs, mode="full")
+    envs = ss.frame_stack_v1(envs, 1)
+    envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
-envs.single_observation_space = envs.observation_space
-envs.single_action_space = envs.action_space
-envs.is_vector_env = True
+    # num_dll = multiprocessing.cpu_count()
+    num_dll = 1
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    envs = ss.concat_vec_envs_v1(envs, num_dll, num_cpus=num_dll, base_class="gymnasium")
+    envs.single_observation_space = envs.observation_space
+    envs.single_action_space = envs.action_space
+    envs.is_vector_env = True
+    # envs.reset()
 
-agent = Agent(envs).to(device)
-agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM_BOB.pt", map_location=device))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    agent = Agent(envs).to(device)
+    agent.load_state_dict(torch.load(f"trained_models/agentCuriosityLSTM_BOB.pt", map_location=device))
 
-
-INIT_HP = {
-    "MAX_EPISODES": 100,
-    "MAX_EPISODE_LENGTH": 200,
-}
-
-next_lstm_state = (
-    torch.zeros(agent.lstm.num_layers, env.MAX_PLAYERS, agent.lstm.hidden_size).to(device),
-    torch.zeros(agent.lstm.num_layers, env.MAX_PLAYERS, agent.lstm.hidden_size).to(device),
-)  
-
-for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
-    initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
-
-    o, infos = envs.reset()
-    next_obs = torch.Tensor(o).to(device)
+    GRAYSCALE_WEIGHTS = np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    def preprocess_img(obs):
+        # grayscale
+        new_obs = np.expand_dims((obs @ GRAYSCALE_WEIGHTS),axis=-1)
+        # downscale
+        return new_obs[:,::INIT_HP["IMAGE_SCALE_FACTOR"],::INIT_HP["IMAGE_SCALE_FACTOR"],:]
     
-    next_done = torch.zeros(env.MAX_PLAYERS).to(device)
-    for i in tqdm(range(INIT_HP["MAX_EPISODE_LENGTH"]),leave=False):
-        with torch.no_grad():
-            action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done)
+    next_lstm_state = (
+        torch.zeros(agent.lstm.num_layers, envs.num_envs, agent.lstm.hidden_size).to(device),
+        torch.zeros(agent.lstm.num_layers, envs.num_envs, agent.lstm.hidden_size).to(device),
+    )  
+    
+    renderer = SM64_ENV_RENDER_GRID(128 * INIT_HP["IMAGE_SCALE_FACTOR"], 72 * INIT_HP["IMAGE_SCALE_FACTOR"], N_RENDER_COLUMNS=INIT_HP["N_RENDER_COLUMNS"], N_RENDER_ROWS=envs.num_envs / INIT_HP["N_RENDER_COLUMNS"], coloured=True, mode="normal")
+    for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
+        initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
 
-        observations, rewards, done, truncations, infos = envs.step(action.cpu().numpy())
-        tmp = envs.step(action.cpu().numpy())
-        next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
-        next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
-
-print("Finished :)")
+        o, infos = envs.reset()
+        next_obs = torch.Tensor(preprocess_img(o)).to(device)
+        next_done = torch.zeros(envs.num_envs).to(device)
+        for i in tqdm(range(INIT_HP["MAX_EPISODE_LENGTH"]),leave=False):
+            with torch.no_grad():
+                action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done)
+            observations, rewards, done, truncations, infos = envs.step(action.cpu().numpy())
+            next_obs, next_done = torch.Tensor(preprocess_img(observations)).to(device), torch.Tensor(done).to(device)
+            renderer.render_game(observations)
+    envs.reset()
+    print("Finished :)")

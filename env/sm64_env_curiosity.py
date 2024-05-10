@@ -14,12 +14,11 @@ import matplotlib.pyplot as plt
 
 
 class SM64_ENV_CURIOSITY(SM64_ENV):
-    def __init__(self, FRAME_SKIP=4, MAKE_OTHER_PLAYERS_INVISIBLE=False, PLAYER_COLLISION_TYPE=0, AUTO_RESET=False, N_RENDER_COLUMNS=4, render_mode="forced", HIDE_AND_SEEK_MODE=False, COMPASS_ENABLED=False, IMG_WIDTH=128, IMG_HEIGHT=72, ACTION_BOOK=[],
-                 NODES_MAX=3000, NODE_RADIUS= 300, NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=800, TOP_DOWN_CAMERA=False):
+    def __init__(self, NODES_MAX=3000, NODE_RADIUS= 300, 
+                 NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=800, **kwargs):
         # format of each node is (x,y,z,visits)
-
-        # no need to eat up vram with this, not much faster anyway
-        self.nodes = torch.zeros((NODES_MAX, 4),device="cpu")
+        # no need to eat up vram with these nodes, not much faster anyway
+        self.nodes = torch.zeros((NODES_MAX, 4), device="cpu")
         self.nodes[0][3] = 1 # set the first node to have 1 visit
 
         self.NODE_RADIUS = NODE_RADIUS
@@ -27,7 +26,8 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
         self.NODE_MAX_HEIGHT_ABOVE_GROUND = NODE_MAX_HEIGHT_ABOVE_GROUND
         self.node_index = 1
 
-        super(SM64_ENV_CURIOSITY,self).__init__(FRAME_SKIP=FRAME_SKIP, MAKE_OTHER_PLAYERS_INVISIBLE=MAKE_OTHER_PLAYERS_INVISIBLE, PLAYER_COLLISION_TYPE=PLAYER_COLLISION_TYPE, AUTO_RESET=AUTO_RESET, N_RENDER_COLUMNS=N_RENDER_COLUMNS, render_mode=render_mode, HIDE_AND_SEEK_MODE=HIDE_AND_SEEK_MODE,COMPASS_ENABLED=COMPASS_ENABLED, IMG_WIDTH=IMG_WIDTH, IMG_HEIGHT=IMG_HEIGHT, ACTION_BOOK=ACTION_BOOK, TOP_DOWN_CAMERA=TOP_DOWN_CAMERA)
+        super(SM64_ENV_CURIOSITY,self).__init__(NODES_MAX=3000, NODE_RADIUS= 300, 
+                NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=800, **kwargs)
 
     def calc_agent_rewards(self, gameStatePointers):
         # remember the number of visits to each node, then update them all afterwards
@@ -70,14 +70,11 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
             self.infos[i]["node_index"]= self.node_index
 
     def reset(self, seed=None, options=None):
+        ##################### GRAPHING
         fig, ax = plt.subplots()
         x = [self.nodes[k][0].item() for k in range(self.node_index)]
         y = [self.nodes[k][2].item() for k in range(self.node_index)]
         visits = [self.nodes[k][3].item() for k in range(self.node_index)]
-        sum_visits = sum(visits)
-        # for i in range(self.node_index):
-        #     circle = patches.CirclePolygon((x[i], y[i]), radius=self.NODE_RADIUS, facecolor='blue', alpha=0.2)
-        #     ax.add_patch(circle)
         cmap = plt.cm.get_cmap('plasma')
         # Normalize the values of self.V to the range [0, 1]
         sorted_visits = sorted(visits)
@@ -86,7 +83,7 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
 
         # Plot the circles with color based on self.V
         for i in range(self.node_index):
-            circle = patches.CirclePolygon((x[i], y[i]), radius=self.NODE_RADIUS, facecolor=cmap(norm(visits[i])), alpha=0.5)
+            circle = patches.CirclePolygon((x[i], y[i]), radius=self.NODE_RADIUS, facecolor=cmap(norm(visits[i])), alpha=0.35)
             ax.add_patch(circle)
 
         # Add a colorbar legend on the side
@@ -97,8 +94,8 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
 
         ax.set_xlim(-8000, 8000)
         ax.set_ylim(-8000, 8000)
-        # img = plt.imread("map_BOB.png")
-        # ax.imshow(img, extent=[-8000, 8000, -8000, 8000])
+        img = plt.imread("map_BOB.png")
+        ax.imshow(img, extent=[-8000, 8000, -8000, 8000])
         ax.set_xlabel("X")
         ax.set_ylabel("Z")
         ax.set_aspect('equal', adjustable='box')
@@ -106,8 +103,10 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
         plt.savefig(f"graphs/curiosity/graph_{int(time.time())}.png")
         plt.close(fig)
 
+        ################################ ACTUAL RESETTING
         self.node_index = 1
         return super().reset(seed, options)
+    
     def reset_nodes(self):
         self.node_index = 1
     

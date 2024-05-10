@@ -43,9 +43,9 @@ def parse_args():
         help="the id of the environment")
     parser.add_argument("--total-timesteps", type=int, default=20000000,
         help="total timesteps of the experiments")
-    parser.add_argument("--learning-rate", type=float, default=2.5e-4,
+    parser.add_argument("--learning-rate", type=float, default=1e-4,
         help="the learning rate of the optimizer")
-    parser.add_argument("--num-envs", type=int, default=4,
+    parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
     parser.add_argument("--num-steps", type=int, default=100,
         help="the number of steps to run in each environment per policy rollout")
@@ -75,8 +75,10 @@ def parse_args():
         help="the target KL divergence threshold")
     args = parser.parse_args()
 
-
-    # fmt: on
+    # # we split batches across 2 players, so must divide this by 2
+    # args.batch_size = int(args.num_envs * args.num_steps) // 2
+    # args.minibatch_size = int(args.batch_size // args.num_minibatches)
+    # # fmt: on
     return args
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -84,31 +86,40 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
+
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
         self.network = nn.Sequential(
             # 4 frame stack so that is the first number
-            layer_init(nn.Conv2d(4, 128, 8, stride=2)),
+            layer_init(nn.Conv2d(4, 256, 8, stride=2)),
             nn.MaxPool2d(kernel_size=4, stride=2),
             nn.LeakyReLU(),
-            layer_init(nn.Conv2d(128, 64, 4, stride=2)),
+            layer_init(nn.Conv2d(256, 128, 4, stride=2)),
+            nn.LeakyReLU(),
+            layer_init(nn.Conv2d(128, 128, 2, stride=1)),
             nn.LeakyReLU(),
             nn.Flatten(),
 
-            # 4992 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
-            layer_init(nn.Linear(4992, 2048)),
+            # 7680 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
+            layer_init(nn.Linear(7680, 4096)),
             nn.LeakyReLU(),
-            layer_init(nn.Linear(2048, 1024)),
+            layer_init(nn.Linear(4096, 4096)),
+            nn.LeakyReLU(),
+            layer_init(nn.Linear(4096, 2048)),
             nn.LeakyReLU(),
         )
         self.actor = nn.Sequential(
+            layer_init(nn.Linear(2048,1024), std=0.01),
+            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
         )
         
         self.critic = nn.Sequential(
+            layer_init(nn.Linear(2048,1024), std=0.01),
+            nn.LeakyReLU(),
             layer_init(nn.Linear(1024,512), std=0.01),
             nn.LeakyReLU(),
             layer_init(nn.Linear(512, 1), std=1)
@@ -124,11 +135,7 @@ class Agent(nn.Module):
         x[:, :, :, [0, 1, 2, 3]] /= 255.0
         hidden = self.network(x.permute((0, 3, 1, 2)))
         logits = self.actor(hidden)
-
         probs = Categorical(logits=logits)
-
-        # probs = Categorical(logits=logits)
-        
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
@@ -136,27 +143,65 @@ class Agent(nn.Module):
 
 
 if __name__ == "__main__":
-        # env setup
-    env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4)
+    # extra moves added for the more complicated model 
+    ACTION_BOOK = [
+        # -----FORWARD
+        # None
+        [0,False,False,False],
+        # Jump
+        [0,True,False,False],
+        # start longjump (crouch)
+        [0,False,False,True],
+        # Dive
+        [0,False,True,False],
+
+        # -----FORWARD RIGHT
+        # None
+        [30,False,False,False],
+        [10,False,False,False],
+        # Jump
+        # [30,True,False,False],
+
+        # -----FORWARD LEFT
+        # None
+        [-30,False,False,False],
+        [-10,False,False,False],
+        # Jump
+        # [-30,True,False,False],
+
+        # -----BACKWARDS
+        # None
+        [180,False,False,False],
+        # Jump
+        [180,True,False,False],
+
+        # # ----- NO STICK (no direction held)
+        # # None
+        # ["noStick",False,False,False],
+        # # Groundpound
+        # ["noStick",False,False,True],
+    ]
+    env = SM64_ENV_TAG(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK)
     envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
     envs = ss.color_reduction_v0(envs, mode="full")
 
     envs = ss.frame_stack_v1(envs, 4)
     envs = ss.black_death_v3(envs)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
-    # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
 
-    envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
+    num_dll = 2
+
+    envs = ss.concat_vec_envs_v1(envs, num_dll, num_cpus=num_dll, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
     envs.single_action_space = envs.action_space
     envs.is_vector_env = True
 
     args = parse_args()
-    args.num_envs = env.MAX_PLAYERS
-    # we split batches across 2 players, so must divide this by 2
+    args.num_envs = envs.num_envs
+    # half because it is spread across 2 players
     args.batch_size = int(args.num_envs * args.num_steps) // 2
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
+
     # hider seeker split (ie first half are hiders, second half are seekers)
     H_S_SPLIT = env.MAX_PLAYERS//2
     run_name = f"SM64_TAG_PPO_{int(time.time())}_{env.IMG_WIDTH}x{env.IMG_HEIGHT}_PLAYERS_{env.MAX_PLAYERS}_ACTIONS_{env.N_ACTIONS}"
@@ -175,6 +220,7 @@ if __name__ == "__main__":
         writer = SummaryWriter(wandb.run.dir)
     else:
         writer = SummaryWriter(f"runs/{run_name}")
+
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -198,8 +244,8 @@ if __name__ == "__main__":
     optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # if you want to load an agent
-    agentHider.load_state_dict(torch.load(f"trained_models/agentHider.pt", map_location=device))
-    agentSeeker.load_state_dict(torch.load(f"trained_models/agentHider.pt", map_location=device))
+    # agentHider.load_state_dict(torch.load(f"trained_models/agentHider_XL_6.pt", map_location=device))
+    # agentSeeker.load_state_dict(torch.load(f"trained_models/agentHider_XL_6.pt", map_location=device))
     
     # ALGO Logic: Storage setup
     obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
@@ -450,8 +496,8 @@ if __name__ == "__main__":
             if update % 20 == 0:
                 torch.save(agentHider.state_dict(), f"{wandb.run.dir}/agentHider.pt")
                 torch.save(agentSeeker.state_dict(), f"{wandb.run.dir}/agentSeeker.pt")
-                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now", base_path=wandb.run.dir)
-                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now", base_path=wandb.run.dir)
+                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now",  base_path=wandb.run.dir)
+                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now",  base_path=wandb.run.dir)
 
     envs.close()
     writer.close()

@@ -33,8 +33,7 @@ def make_env():
     return env
 if __name__ == "__main__":
     # env = make_env()
-    # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores? or processes? idk ray rllib did it somehow
+
     n = 5
     env = SuperSubprocVecEnv(env_fns=[make_env for _ in range(n)])
     # env = ss.concat_vec_envs_v1(make_env(), 2, num_cpus=99999, base_class="gymnasium")

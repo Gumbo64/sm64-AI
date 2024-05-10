@@ -1,28 +1,43 @@
 import pygame
 from PIL import Image
+import numpy as np
 
 class SM64_ENV_RENDER_GRID:
-    def __init__(self, IMG_WIDTH, IMG_HEIGHT, mode="normal"):
+    def __init__(self, IMG_WIDTH, IMG_HEIGHT,N_RENDER_COLUMNS=5, N_RENDER_ROWS=6, mode="normal", coloured=False):
         pygame.init()
-
-        self.N_RENDER_COLUMNS = 5
+        self.coloured = coloured
+        self.N_RENDER_COLUMNS = N_RENDER_COLUMNS
+        self.N_RENDER_ROWS = N_RENDER_ROWS
         self.IMG_WIDTH = IMG_WIDTH
         self.IMG_HEIGHT = IMG_HEIGHT
         self.mode = mode
 
-        self.RENDER_WINDOW_WIDTH = self.N_RENDER_COLUMNS * IMG_WIDTH + 100
-        self.RENDER_WINDOW_HEIGHT = self.N_RENDER_COLUMNS * IMG_HEIGHT + 100
+        self.RENDER_WINDOW_WIDTH = self.N_RENDER_COLUMNS * IMG_WIDTH
+        self.RENDER_WINDOW_HEIGHT = self.N_RENDER_ROWS * IMG_HEIGHT
         self.window = pygame.display.set_mode((self.RENDER_WINDOW_WIDTH,self.RENDER_WINDOW_HEIGHT))
         pygame.display.set_caption("mario command panel")
 
-
-    def render_game(self, np_imgs):    
+    def render_game(self, observations):  
         pygame.event.get()
-        n_players = np_imgs.shape[0]   
-        # print(np_imgs.shape)
-        imgs = [0 for i in range(n_players)]
-        for i in range(n_players):
-            imgs[i] = Image.fromarray(np_imgs[i, :, :, 0], 'L')
+        # Pettingzoo gives a dictionary, otherwise it's just a numpy array
+        imgs = []
+        if type(observations) == dict:
+            keys = list(observations.keys())
+            imgs = [0 for i in range(len(keys))]
+            for i in range(len(keys)):
+                # the 0 is the frame_stack dimension, we only want one frame though
+                imgs[i] = Image.fromarray(observations[keys[i]][:,:,0], 'L')
+        else:
+            imgs = [0 for i in range(len(observations))]
+            n_players = observations.shape[0]
+            # print(np_imgs.shape)
+
+            for i in range(n_players):
+                if self.coloured:
+                    imgs[i] = Image.fromarray(observations[i], 'RGB')
+                else:
+                    imgs[i] = Image.fromarray(observations[i, :, :, 0], 'L')
+                
 
         if self.mode == "tag":
             # put hiders and seekers together
@@ -30,8 +45,6 @@ class SM64_ENV_RENDER_GRID:
             tmp[::2] = imgs[0:n_players//2] 
             tmp[1::2] = imgs[n_players//2:]
             imgs = tmp
-
-
 
         self.window.fill((0, 0, 0))
         for i in range(len(imgs)):

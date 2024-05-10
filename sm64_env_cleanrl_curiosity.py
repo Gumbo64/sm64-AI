@@ -18,6 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 import multiprocessing
 from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import tqdm
+from env.sm64_env_render_grid import SM64_ENV_RENDER_GRID
 
 def parse_args():
     # fmt: off
@@ -76,7 +77,7 @@ def parse_args():
         help="the target KL divergence threshold")
     args = parser.parse_args()
 
-    args.num_envs = env.MAX_PLAYERS
+    args.num_envs = 0
 
     # fmt: on
     return args
@@ -206,7 +207,7 @@ if __name__ == "__main__":
         # # Groundpound
         # ["noStick",False,False,True],
     ]
-    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK,
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK,
                              NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=400, NODE_MAX_HEIGHT_ABOVE_GROUND=1000,
                              MAKE_OTHER_PLAYERS_INVISIBLE=True)
     envs = ss.black_death_v3(env)
@@ -215,15 +216,15 @@ if __name__ == "__main__":
     envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
-    n_cpus = multiprocessing.cpu_count()
-
+    # n_cpus = multiprocessing.cpu_count()
+    n_cpus = 1
     envs = ss.concat_vec_envs_v1(envs, n_cpus, num_cpus=n_cpus, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
     envs.single_action_space = envs.action_space
     envs.is_vector_env = True
 
     args = parse_args()
-    args.num_envs = env.MAX_PLAYERS * n_cpus
+    args.num_envs = envs.num_envs
 
 
     args.batch_size = int(args.num_envs * args.num_steps)
@@ -287,7 +288,7 @@ if __name__ == "__main__":
         torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
         torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
     )  # hidden and cell states (see https://youtu.be/8HyCNIVRbSU)
-
+    renderer = SM64_ENV_RENDER_GRID(128, 72, N_RENDER_COLUMNS=5, mode="normal")
     for iteration in tqdm(range(1, args.num_iterations + 1)):
         # reset LSTM hidden units when episode begins
         # next_lstm_state = (
@@ -325,10 +326,11 @@ if __name__ == "__main__":
 
             # TRY NOT TO MODIFY: execute the game and log data.
             tmp = envs.step(action.cpu().numpy())
-            next_obs, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
+            observations, reward, done, truncations, infos = tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]
   
             rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+            next_obs, next_done = torch.Tensor(observations).to(device), torch.Tensor(done).to(device)
+            renderer.render_game(observations)
             
 
             #DO NOT RESET LSTM AFTER DEATH THIS DOESN'T WORK WELL AT ALL

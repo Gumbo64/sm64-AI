@@ -191,7 +191,7 @@ if __name__ == "__main__":
         [135,True,False,False],
         [-135,True,False,False],
     ]
-    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK,
+    env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK,
                              NODES_MAX=3000, NODE_RADIUS= 400, NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=2000,
                             #  IMPORTANT
                             TOP_DOWN_CAMERA=True,
@@ -205,9 +205,6 @@ if __name__ == "__main__":
 
     envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
-
-    # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
 
     envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space

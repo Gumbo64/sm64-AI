@@ -65,7 +65,15 @@ class SM64_ENV(ParallelEnv):
 
     def __init__(self, FRAME_SKIP=4 , MAKE_OTHER_PLAYERS_INVISIBLE=True,PLAYER_COLLISION_TYPE=0, AUTO_RESET = False, ACTION_BOOK=[],
                  N_RENDER_COLUMNS=5, render_mode=None,HIDE_AND_SEEK_MODE=False, COMPASS_ENABLED=False, TOP_DOWN_CAMERA=False,
-                 IMG_WIDTH=84, IMG_HEIGHT=84):
+                 IMG_WIDTH=128, IMG_HEIGHT=72, **kwargs):
+        # puts all the above variables into a dictionary for easy saving and loading
+        setup_variables = locals().copy()
+        del setup_variables["self"]
+        setup_variables.update(kwargs)
+        del setup_variables["kwargs"]
+        self.setup_variables = setup_variables.copy()
+        # print(self.setup_variables)
+
         self.render_mode = render_mode
         self.np_random = np.random.Generator(np.random.PCG64())
         # if angleDegrees == "noStick" then there is no direction held
@@ -136,19 +144,13 @@ class SM64_ENV(ParallelEnv):
         # pygame.display.set_caption("mario command panel")
 
     def __getstate__(self):
-        all_state = self.__dict__.copy()
-        new_state = {}
-        # Don't pickle the window nor dll
-        starting_fields = ["FRAME_SKIP","MAKE_OTHER_PLAYERS_INVISIBLE","PLAYER_COLLISION_TYPE","AUTO_RESET","ACTION_BOOK","N_RENDER_COLUMNS","render_mode","HIDE_AND_SEEK_MODE","COMPASS_ENABLED","TOP_DOWN_CAMERA","IMG_WIDTH","IMG_HEIGHT"]
-        for field in starting_fields:
-            new_state[field] = all_state[field]
-        return new_state
+        setup_variables = self.setup_variables.copy()
+        return setup_variables
 
     def __setstate__(self, state):
         # just remake the whole thing bro
-        state_dict = {}
-        state_dict.update(state)
-        self.__init__(**state_dict)
+        self.__init__(**state)
+
     def reset(self, seed=None, options=None, random_moves=10):
         self.agents = self.possible_agents.copy()
         # reset the image stacks

@@ -1,4 +1,3 @@
-from env.sm64_env import SM64_ENV
 from env.sm64_env_tag import SM64_ENV_TAG
 from tqdm import tqdm
 import supersuit as ss
@@ -7,6 +6,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 import numpy as np
+
+from env.sm64_env_render_grid import SM64_ENV_RENDER_GRID
+
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
@@ -103,7 +105,7 @@ ACTION_BOOK = [
     # # Groundpound
     # ["noStick",False,False,True],
 ]
-env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK)
+env = SM64_ENV_TAG(FRAME_SKIP=4, N_RENDER_COLUMNS=4, ACTION_BOOK=ACTION_BOOK, IMG_WIDTH=128, IMG_HEIGHT=72)
 envs = ss.clip_reward_v0(env, lower_bound=-1, upper_bound=1)
 envs = ss.color_reduction_v0(envs, mode="full")
 
@@ -131,7 +133,7 @@ INIT_HP = {
     "MAX_EPISODE_LENGTH": 200,
 }
 H_S_SPLIT = env.MAX_PLAYERS//2
-
+renderer = SM64_ENV_RENDER_GRID(128, 72, N_RENDER_COLUMNS=5, mode="normal")
 for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
     observations, infos = envs.reset()
     for i in tqdm(range(INIT_HP["MAX_EPISODE_LENGTH"]), leave=False):
@@ -142,6 +144,7 @@ for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
         action, logprob, _, value = [torch.cat((hider_results[i], seeker_results[i])) for i in range(4)]
 
         observations, rewards, terminations, truncations, infos = envs.step(action.cpu().numpy())
+        renderer.render_game(observations)
     
 
 print("Passed test :)")

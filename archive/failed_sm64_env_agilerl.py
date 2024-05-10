@@ -90,9 +90,7 @@ if __name__ == "__main__":
     envs = ss.frame_stack_v1(envs, 1)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
 
-    # Only works with 1 env at the same time unfortunately. This is because of CDLL, u can't open multiple instances of the same dll
-    # Although it does work when they are in different cores, but i haven't figured out how to get it to work yet
-    
+
     envs = ss.concat_vec_envs_v1(envs, 1, num_cpus=99999, base_class="gymnasium")
     envs.single_observation_space = envs.observation_space
     envs.single_action_space = envs.action_space

@@ -291,7 +291,7 @@ static void enable_mod_write(FILE* file) {
         struct Mod* mod = gLocalMods.entries[i];
         if (mod == NULL) { continue; }
         if (!mod->enabled) { continue; }
-        fprintf(file, "%s %s\n", "enable-mod:", mod->relativePath);
+        // fprintf(file, "%s %s\n", "enable-mod:", mod->relativePath);
     }
 }
 
@@ -304,7 +304,7 @@ static void ban_write(FILE* file) {
         if (gBanAddresses == NULL) { break; }
         if (gBanAddresses[i] == NULL) { continue; }
         if (!gBanPerm[i]) { continue; }
-        fprintf(file, "%s %s\n", "ban:", gBanAddresses[i]);
+        // fprintf(file, "%s %s\n", "ban:", gBanAddresses[i]);
     }
 }
 
@@ -317,7 +317,7 @@ static void moderator_write(FILE* file) {
         if (gModeratorAddresses == NULL) { break; }
         if (gModeratorAddresses[i] == NULL) { continue; }
         if (!gModerator[i]) { continue; }
-        fprintf(file, "%s %s\n", "moderator:", gModeratorAddresses[i]);
+        // fprintf(file, "%s %s\n", "moderator:", gModeratorAddresses[i]);
     }
 }
 
@@ -346,7 +346,7 @@ static void dynos_pack_write(FILE* file) {
     for (int i = 0; i < packCount; i++) {
         bool enabled = dynos_pack_get_enabled(i);
         const char* pack = dynos_pack_get_name(i);
-        fprintf(file, "%s %s %s\n", "dynos-pack:", pack, enabled ? "true" : "false");
+        // fprintf(file, "%s %s %s\n", "dynos-pack:", pack, enabled ? "true" : "false");
     }
 }
 
@@ -455,12 +455,12 @@ static void configfile_load_internal(const char *filename, bool* error) {
     unsigned int temp;
     *error = false;
 
-    printf("Loading configuration from '%s'\n", filename);
+    // printf("Loading configuration from '%s'\n", filename);
 
     file = fs_open(filename);
     if (file == NULL) {
         // Create a new config file and save defaults
-        printf("Config file '%s' not found. Creating it.\n", filename);
+        // printf("Config file '%s' not found. Creating it.\n", filename);
         configfile_save(filename);
         return;
     }
@@ -502,9 +502,9 @@ static void configfile_load_internal(const char *filename, bool* error) {
                     }
                 }
 
-                if (option == NULL)
-                    printf("unknown option '%s'\n", tokens[0]);
-                else {
+                if (option == NULL){
+                    // printf("unknown option '%s'\n", tokens[0]);
+                } else {
                     switch (option->type) {
                         case CONFIG_TYPE_BOOL:
                             if (strcmp(tokens[1], "true") == 0)
@@ -524,7 +524,7 @@ static void configfile_load_internal(const char *filename, bool* error) {
                             break;
                         case CONFIG_TYPE_STRING:
                             memset(option->stringValue, '\0', option->maxStringLength);
-                            snprintf(option->stringValue, option->maxStringLength, "%s", tokens[1]);
+                            // snprintf(option->stringValue, option->maxStringLength, "%s", tokens[1]);
                             break;
                         case CONFIG_TYPE_U64:
                             sscanf(tokens[1], "%llu", option->u64Value);
@@ -539,9 +539,9 @@ static void configfile_load_internal(const char *filename, bool* error) {
                             LOG_ERROR("Configfile read bad type '%d': %s", (int)option->type, line);
                             goto NEXT_OPTION;
                     }
-                    printf("option: '%s', value:", tokens[0]);
-                    for (int i = 1; i < numTokens; ++i) printf(" '%s'", tokens[i]);
-                    printf("\n");
+                    // printf("option: '%s', value:", tokens[0]);
+                    // for (int i = 1; i < numTokens; ++i) printf(" '%s'", tokens[i]);
+                    // printf("\n");
                 }
             } else
                 puts("error: expected value");
@@ -579,7 +579,7 @@ void configfile_load(void) {
 void configfile_save(const char *filename) {
     FILE *file;
 
-    printf("Saving configuration to '%s'\n", filename);
+    // printf("Saving configuration to '%s'\n", filename);
 
     file = fopen(fs_get_write_path(filename), "w");
     if (file == NULL) {
@@ -592,31 +592,31 @@ void configfile_save(const char *filename) {
 
         switch (option->type) {
             case CONFIG_TYPE_BOOL:
-                fprintf(file, "%s %s\n", option->name, *option->boolValue ? "true" : "false");
+                // fprintf(file, "%s %s\n", option->name, *option->boolValue ? "true" : "false");
                 break;
             case CONFIG_TYPE_UINT:
-                fprintf(file, "%s %u\n", option->name, *option->uintValue);
+                // fprintf(file, "%s %u\n", option->name, *option->uintValue);
                 break;
             case CONFIG_TYPE_FLOAT:
-                fprintf(file, "%s %f\n", option->name, *option->floatValue);
+                // fprintf(file, "%s %f\n", option->name, *option->floatValue);
                 break;
             case CONFIG_TYPE_BIND:
-                fprintf(file, "%s ", option->name);
+                // fprintf(file, "%s ", option->name);
                 for (int i = 0; i < MAX_BINDS; ++i)
-                    fprintf(file, "%04x ", option->uintValue[i]);
-                fprintf(file, "\n");
+                    // fprintf(file, "%04x ", option->uintValue[i]);
+                // fprintf(file, "\n");
                 break;
             case CONFIG_TYPE_STRING:
-                fprintf(file, "%s %s\n", option->name, option->stringValue);
+                // fprintf(file, "%s %s\n", option->name, option->stringValue);
                 break;
             case CONFIG_TYPE_U64:
-                fprintf(file, "%s %llu\n", option->name, *option->u64Value);
+                // fprintf(file, "%s %llu\n", option->name, *option->u64Value);
                 break;
             case CONFIG_TYPE_COLOR:
-                fprintf(file, "%s %02x %02x %02x\n", option->name, (*option->colorValue)[0], (*option->colorValue)[1], (*option->colorValue)[2]);
+                // fprintf(file, "%s %02x %02x %02x\n", option->name, (*option->colorValue)[0], (*option->colorValue)[1], (*option->colorValue)[2]);
                 break;
             default:
-                LOG_ERROR("Configfile wrote bad type '%d': %s", (int)option->type, option->name);
+                // LOG_ERROR("Configfile wrote bad type '%d': %s", (int)option->type, option->name);
                 break;
         }
     }

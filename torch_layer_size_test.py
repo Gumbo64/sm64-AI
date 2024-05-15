@@ -7,20 +7,19 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     return layer
 
 network = nn.Sequential(
-    # 4 frame stack so that is the first number
-
-    layer_init(nn.Conv2d(1, 256, 8, stride=2)),
-    nn.MaxPool2d(kernel_size=4, stride=2),
+    # frame stack is the first number
+    layer_init(nn.Linear(7680 + 512, 4096)),
     nn.LeakyReLU(),
-    layer_init(nn.Conv2d(256, 128, 4, stride=2)),
+    layer_init(nn.Linear(4096, 4096)),
     nn.LeakyReLU(),
-    layer_init(nn.Conv2d(128, 128, 2, stride=1)),
-    nn.Flatten(),
-
-
-
+    layer_init(nn.Linear(4096, 4096)),
+    nn.LeakyReLU(),
+    layer_init(nn.Linear(4096, 4096)),
+    nn.LeakyReLU(),
+    layer_init(nn.Linear(4096, 2048)),
+    nn.LeakyReLU(),
 )
-height = 84
-width = 84
+height = 72
+width = 128
 channels = 1
 print(network(torch.zeros((1, channels, height, width))).shape)

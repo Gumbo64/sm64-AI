@@ -309,15 +309,13 @@ void inthand(UNUSED int signum) {
     game_exit();
 }
 
+Vec3f partnerVelocities[MAX_PLAYERS] = {0};
+
 void cam_focus_player(int playerIndex){
     gNoCamUpdate = TRUE;
     Vec3f campos;
     gSmluaCameraIndex = playerIndex;
-    if (hideAndSeekMode){
-        vec3f_copy(gSmluaCompassTargets[playerIndex], gMarioStates[( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS ].pos);
-    }else{
-        vec3f_set(gSmluaCompassTargets[playerIndex],0,0,0);
-    }
+
     vec3f_copy(campos, gMarioStates[playerIndex].pos);
 
     if (gTopDownCamera) {
@@ -342,18 +340,24 @@ void set_compass_targets(Vec3f targets[MAX_PLAYERS]){
     }
 }
 
-void force_make_frame(int playerIndex) {
+void force_make_frame(int playerIndex) {   
     cam_focus_player(playerIndex);
-    if (makeOtherPlayersInvisible){
-        for (int i=0; i<MAX_PLAYERS;i++){
-            // if you are rendering yourself OR you are rendering your chaser/evader
-            if (i == playerIndex || ( hideAndSeekMode && i == ( playerIndex + MAX_PLAYERS/2 ) % MAX_PLAYERS )  ){
-                gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
-            }else{
-                gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
-            }
+
+    for (int i=0; i<MAX_PLAYERS;i++){
+        // finding hide&seek partner
+        int otherPlayerIndex = playerIndex - 1;
+        if (playerIndex % 2 == 0) {
+            otherPlayerIndex = playerIndex + 1;
+        }
+
+        // if you are rendering yourself OR you are rendering your chaser/evader
+        if (i == playerIndex || (hideAndSeekMode && i == otherPlayerIndex) || !makeOtherPlayersInvisible) {
+            gMarioStates[i].marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
+        }else{
+            gMarioStates[i].marioObj->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
         }
     }
+    
 
     // before level script
     config_gfx_pool();
@@ -464,11 +468,25 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         produce_one_frame();
         // player 0' image gets overwritten without this (yes, twice) and also it updates the animations
         force_make_frame_support();
-        force_make_frame_support();
+        // force_make_frame_support();
     }
 
     // RENDERING LOOP (for each player)
-    for(int i = 0; i<MAX_PLAYERS; i++){
+    for(int i = 0; i < MAX_PLAYERS; i++){    
+        // hide and seek mode calculating extra inputs
+        if (hideAndSeekMode){
+            int otherPlayerIndex = i - 1;
+            // if the player is a seeker
+            if (i % 2 == 0) {
+                otherPlayerIndex = i + 1;
+            }
+            vec3f_copy(gSmluaCompassTargets[i], gMarioStates[otherPlayerIndex].pos);
+            vec3f_copy(partnerVelocities[i], gMarioStates[otherPlayerIndex].vel);
+        }else{
+            vec3f_set(gSmluaCompassTargets[i],0,0,0);
+        }
+
+
         force_make_frame(i);
         if (gGameStateStructs[i]){
             if (gGameStateStructs[i]->pixels) free(gGameStateStructs[i]->pixels);
@@ -488,6 +506,15 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         // + 100 because otherwise it will clip through the floor when the floor is too close (don't worry, 50 is less that mario's height)
         gGameStateStructs[i]->heightAboveGround =  gMarioStates[i].pos[1] - find_floor_height(gMarioStates[i].pos[0], gMarioStates[i].pos[1] + 50, gMarioStates[i].pos[2]);
         
+
+        gGameStateStructs[i]->partner_x = gSmluaCompassTargets[i][0];
+        gGameStateStructs[i]->partner_y = gSmluaCompassTargets[i][1];
+        gGameStateStructs[i]->partner_z = gSmluaCompassTargets[i][2];
+
+        gGameStateStructs[i]->partner_vel_x = partnerVelocities[i][0];
+        gGameStateStructs[i]->partner_vel_y = partnerVelocities[i][1];
+        gGameStateStructs[i]->partner_vel_z = partnerVelocities[i][2];
+
         gGameStateStructs[i]->deathNotice = gSmluaDeathNotices[i];
         gSmluaDeathNotices[i] = 0;
 
@@ -527,7 +554,7 @@ void main_func(char *relGameDir, char *relUserPath, bool invisible, int collisio
     const char *gamedir = relGameDir;
     const char *userpath = relUserPath;
     fs_init(sys_ropaths, gamedir, userpath);
-    printf("---------%s %s----------\n",gamedir,userpath);
+    // printf("---------%s %s----------\n",gamedir,userpath);
     sync_objects_init_system();
     djui_unicode_init();
     djui_init();
@@ -541,7 +568,7 @@ void main_func(char *relGameDir, char *relUserPath, bool invisible, int collisio
     // load config
     configfile_load();
     if (!djui_language_init(configLanguage)) {
-        snprintf(configLanguage, MAX_CONFIG_STRING, "%s", "");
+        // snprintf(configLanguage, MAX_CONFIG_STRING, "%s", "");
     }
 
     dynos_pack_init();

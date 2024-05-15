@@ -71,37 +71,37 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
 
     def reset(self, seed=None, options=None):
         ##################### GRAPHING
-        fig, ax = plt.subplots()
-        x = [self.nodes[k][0].item() for k in range(self.node_index)]
-        y = [self.nodes[k][2].item() for k in range(self.node_index)]
-        visits = [self.nodes[k][3].item() for k in range(self.node_index)]
-        cmap = plt.cm.get_cmap('plasma')
-        # Normalize the values of self.V to the range [0, 1]
-        sorted_visits = sorted(visits)
-        norm = plt.Normalize(min(visits), sorted_visits[max(0,len(sorted_visits)-10)])
-        # norm = plt.Normalize(0, 10)
+        # fig, ax = plt.subplots()
+        # x = [self.nodes[k][0].item() for k in range(self.node_index)]
+        # y = [self.nodes[k][2].item() for k in range(self.node_index)]
+        # visits = [self.nodes[k][3].item() for k in range(self.node_index)]
+        # cmap = plt.cm.get_cmap('plasma')
+        # # Normalize the values of self.V to the range [0, 1]
+        # sorted_visits = sorted(visits)
+        # norm = plt.Normalize(min(visits), sorted_visits[max(0,len(sorted_visits)-10)])
+        # # norm = plt.Normalize(0, 10)
 
-        # Plot the circles with color based on self.V
-        for i in range(self.node_index):
-            circle = patches.CirclePolygon((x[i], y[i]), radius=self.NODE_RADIUS, facecolor=cmap(norm(visits[i])), alpha=0.35)
-            ax.add_patch(circle)
+        # # Plot the circles with color based on self.V
+        # for i in range(self.node_index):
+        #     circle = patches.CirclePolygon((x[i], y[i]), radius=self.NODE_RADIUS, facecolor=cmap(norm(visits[i])), alpha=0.35)
+        #     ax.add_patch(circle)
 
-        # Add a colorbar legend on the side
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        plt.colorbar(sm, ax=ax, label='Visits')
+        # # Add a colorbar legend on the side
+        # sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        # sm.set_array([])
+        # plt.colorbar(sm, ax=ax, label='Visits')
 
 
-        ax.set_xlim(-8000, 8000)
-        ax.set_ylim(-8000, 8000)
-        img = plt.imread("map_BOB.png")
-        ax.imshow(img, extent=[-8000, 8000, -8000, 8000])
-        ax.set_xlabel("X")
-        ax.set_ylabel("Z")
-        ax.set_aspect('equal', adjustable='box')
-        plt.savefig(f"graphs/curiosity/!newest.png")
-        plt.savefig(f"graphs/curiosity/graph_{int(time.time())}.png")
-        plt.close(fig)
+        # ax.set_xlim(-8000, 8000)
+        # ax.set_ylim(-8000, 8000)
+        # img = plt.imread("map_BOB.png")
+        # ax.imshow(img, extent=[-8000, 8000, -8000, 8000])
+        # ax.set_xlabel("X")
+        # ax.set_ylabel("Z")
+        # ax.set_aspect('equal', adjustable='box')
+        # plt.savefig(f"graphs/curiosity/!newest.png")
+        # plt.savefig(f"graphs/curiosity/graph_{int(time.time())}.png")
+        # plt.close(fig)
 
         ################################ ACTUAL RESETTING
         self.node_index = 1

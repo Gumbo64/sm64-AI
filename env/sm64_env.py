@@ -28,6 +28,13 @@ class GAME_STATE_STRUCT(ctypes.Structure):
         ("velY",ctypes.c_float),
         ("velZ",ctypes.c_float),
         ("heightAboveGround",ctypes.c_float),
+
+        ("partner_x",ctypes.c_float),
+        ("partner_y",ctypes.c_float),
+        ("partner_z",ctypes.c_float),
+        ("partner_vel_x",ctypes.c_float),
+        ("partner_vel_y",ctypes.c_float),
+        ("partner_vel_z",ctypes.c_float),
     ]
 
 class INPUT_STRUCT(ctypes.Structure):
@@ -175,10 +182,9 @@ class SM64_ENV(ParallelEnv):
             inputStructs[self.AGENT_NAME_TO_INDEX[name]] = make_action_struct(self.ACTION_BOOK[actions[name]])
         
         gameStatePointers = self.dll.step_pixels(inputStructs,self.FRAME_SKIP)
-        
+        self.make_infos(gameStatePointers)
         self.make_np_imgs(gameStatePointers)
         self.calc_agent_rewards(gameStatePointers)
-        self.make_infos(gameStatePointers)
 
         observations = {a: self.np_imgs[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
         rewards      = {a: self.rewards[ self.AGENT_NAME_TO_INDEX[a] ]                              for a in self.agents}
@@ -232,7 +238,17 @@ class SM64_ENV(ParallelEnv):
         self.infos = []
         for i in range(self.MAX_PLAYERS):
             state = gameStatePointers[i].contents
-            self.infos.append({"pos":pos[i], "died":state.deathNotice == 1, "health":state.health, "heightAboveGround":state.heightAboveGround, "vel":(state.velX,state.velY,state.velZ)})
+
+            my_info = {
+                "pos":pos[i],
+                "died":state.deathNotice == 1, 
+                "health":state.health, 
+                "heightAboveGround":state.heightAboveGround, 
+                "vel":(state.velX,state.velY,state.velZ),
+                "partner_pos":(state.partner_x,state.partner_y,state.partner_z),
+                "partner_vel":(state.partner_vel_x,state.partner_vel_y,state.partner_vel_z),
+            }
+            self.infos.append(my_info)
 
     
     def set_compass_targets(self, targets):

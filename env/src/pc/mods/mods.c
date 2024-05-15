@@ -233,7 +233,7 @@ void mods_enable(char* relativePath) {
 
     for (unsigned int i = 0; i < gLocalMods.entryCount; i++) {
         struct Mod* mod = gLocalMods.entries[i];
-        printf("mod %s\n", mod->relativePath);
+        // printf("mod %s\n", mod->relativePath);
         if (!strcmp(relativePath, mod->relativePath)) {
             mod->enabled = true;
             break;

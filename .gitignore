@@ -10,4 +10,4 @@ trained_models
 !trained_models/agentHider.pt
 !trained_models/agentSeeker.pt
 graphs/old_graphs
-graphs/*.png
+graphs/curiosity/*.png

@@ -88,12 +88,12 @@ bool fs_init(const char **rodirs, const char *gamedir, const char *writepath) {
     // expand and remember the write path
     strncpy(fs_writepath, fs_convert_path(buf, sizeof(buf), writepath), sizeof(fs_writepath));
     fs_writepath[sizeof(fs_writepath)-1] = 0;
-    printf("fs: writepath set to `%s`\n", fs_writepath);
+    // printf("fs: writepath set to `%s`\n", fs_writepath);
 
     // remember the game directory name
     strncpy(fs_gamedir, gamedir, sizeof(fs_gamedir));
     fs_gamedir[sizeof(fs_gamedir)-1] = 0;
-    printf("fs: gamedir set to `%s`\n", fs_gamedir);
+    // printf("fs: gamedir set to `%s`\n", fs_gamedir);
 
     // first, scan all possible paths and mount all basedirs in them
     for (const char **p = rodirs; p && *p; ++p)
@@ -133,8 +133,8 @@ bool fs_mount(const char *realpath) {
     }
 
     if (!pack || !packer) {
-        if (tried)
-            fprintf(stderr, "fs: could not mount '%s'\n", realpath);
+        if (tried){}
+            // fprintf(stderr, "fs: could not mount '%s'\n", realpath);
         return false;
     }
 
@@ -153,7 +153,7 @@ bool fs_mount(const char *realpath) {
         fs_searchpaths->prev = dir;
     fs_searchpaths = dir;
 
-    printf("fs: mounting '%s'\n", realpath);
+    // printf("fs: mounting '%s'\n", realpath);
 
     return true;
 }

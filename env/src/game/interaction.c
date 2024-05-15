@@ -1486,13 +1486,16 @@ u32 interact_player_pvp(struct MarioState* attacker, struct MarioState* victim) 
 
     // grab the lag compensation version of the victim
     struct MarioState* cVictim = NULL;
-    if (/*victim->playerIndex == 0*/ TRUE) {
+
+    // i dont want weird network stuff
+    if (/*victim->playerIndex == 0*/ FALSE) {
         cVictim = lag_compensation_get_local_state(&gNetworkPlayers[attacker->playerIndex]);
     }
     if (cVictim == NULL) { cVictim = victim; }
 
     // make sure we overlap
-    f32 overlapScale = (attacker->playerIndex == 0) ? 0.6f : 1.0f;
+    // f32 overlapScale = (attacker->playerIndex == 0) ? 0.6f : 1.0f;
+    f32 overlapScale = (TRUE) ? 0.6f : 1.0f;
     if (!detect_player_hitbox_overlap(attacker, cVictim, overlapScale)) {
         return FALSE;
     }

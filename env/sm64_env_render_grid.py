@@ -21,12 +21,18 @@ class SM64_ENV_RENDER_GRID:
         pygame.event.get()
         # Pettingzoo gives a dictionary, otherwise it's just a numpy array
         imgs = []
+
+        # mixed data types in the observations becomes one
+        if type(observations) == tuple:
+            observations = observations[0]
+            # print(observations.shape)
+        
         if type(observations) == dict:
             keys = list(observations.keys())
             imgs = [0 for i in range(len(keys))]
             for i in range(len(keys)):
                 # the 0 is the frame_stack dimension, we only want one frame though
-                imgs[i] = Image.fromarray(observations[keys[i]][:,:,0], 'L')
+                imgs[i] = Image.fromarray(observations[keys[i]][:,:,0].astype(np.uint8), 'L')
         else:
             imgs = [0 for i in range(len(observations))]
             n_players = observations.shape[0]
@@ -34,17 +40,9 @@ class SM64_ENV_RENDER_GRID:
 
             for i in range(n_players):
                 if self.coloured:
-                    imgs[i] = Image.fromarray(observations[i], 'RGB')
+                    imgs[i] = Image.fromarray(observations[i].astype(np.uint8), 'RGB')
                 else:
-                    imgs[i] = Image.fromarray(observations[i, :, :, 0], 'L')
-                
-
-        if self.mode == "tag":
-            # put hiders and seekers together
-            tmp = [0 for i in range(n_players)]
-            tmp[::2] = imgs[0:n_players//2] 
-            tmp[1::2] = imgs[n_players//2:]
-            imgs = tmp
+                    imgs[i] = Image.fromarray(observations[i, :, :, 0].astype(np.uint8), 'L')
 
         self.window.fill((0, 0, 0))
         for i in range(len(imgs)):

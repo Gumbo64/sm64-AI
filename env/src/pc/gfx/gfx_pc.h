@@ -49,6 +49,13 @@ struct gameStateStruct {
 
     float heightAboveGround;
 
+    float partner_x;
+    float partner_y;
+    float partner_z;
+
+    float partner_vel_x;
+    float partner_vel_y;
+    float partner_vel_z;
 };
 
 struct gameStateStruct* gfx_get_pixels(void);

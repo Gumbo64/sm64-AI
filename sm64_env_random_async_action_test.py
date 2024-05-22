@@ -98,7 +98,7 @@ if __name__ == "__main__":
             actions[1] = len(ACTION_BOOK) - 2
             observations, rewards, terminations, truncations, infos = envs.step(actions)
             renderer.render_game(observations[0])
-            time.sleep(0.1)
+            # time.sleep(0.1)
         envs.reset()
 
     print("Passed test :)")

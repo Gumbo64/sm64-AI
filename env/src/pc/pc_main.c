@@ -468,7 +468,7 @@ struct gameStateStruct** step_pixels(struct inputStruct* inputs, int n_steps){
         produce_one_frame();
         // player 0' image gets overwritten without this (yes, twice) and also it updates the animations
         force_make_frame_support();
-        // force_make_frame_support();
+        force_make_frame_support();
     }
 
     // RENDERING LOOP (for each player)

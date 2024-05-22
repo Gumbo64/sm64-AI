@@ -1,22 +1,36 @@
 import numpy as np
 import torch
 
-def combine_hider_seeker_actions(hiderActions, seekerActions):
-    t = torch.zeros(2 * hiderActions.shape[0], dtype=hiderActions.dtype)
-    t[0::2] = hiderActions
-    t[1::2] = seekerActions
-    return t
-def split_hider_seeker_tensor(tensor):
-    # perform the inverse of the above function
-    a = tensor[::2]
-    b = tensor[1::2]
-    return a,b
+def precompute_indices_and_labels(n, k=3):
+    # Generate the meshgrid of indices
+    ix = np.arange(n)
+    idx1, idx2 = np.meshgrid(ix, ix, indexing='ij')
+    
+    # Select only the upper triangle of indices without the diagonal
+    mask = idx2 > idx1
+    idx1 = idx1[mask]
+    idx2 = idx2[mask]
+    
+    # Generate the labels. If it is within k steps, label it as 1
+    labels = idx2 - idx1 <= k
+    labels = labels.astype(int)
+    
+    return idx1, idx2, labels
 
-# Example usage
-v1 = torch.tensor([1, 2, 3, 4])
-v2 = torch.tensor([5, 6, 7, 8])
-ab = combine_hider_seeker_actions(v1, v2)
-print("ab", ab)
-a,b = split_hider_seeker_tensor(ab)
-print("a", a)
-print("b", b)
+def generate_pairs_with_labels(tensor):
+    # Gather the pairs using the filtered indices
+    pairs = tensor[idx1], tensor[idx2]
+    
+    # Convert the results back to PyTorch tensors
+    pairs_tensor = torch.stack(pairs, dim=1)    
+    return pairs_tensor
+
+# Example usage:
+input_tensor = torch.tensor([5, 3, 12, 7, 43, 51, 6453, 1235, 123541])
+n = input_tensor.size(0)
+print(input_tensor.dim())
+idx1, idx2, labels = precompute_indices_and_labels(n)
+
+pairs_tensor = generate_pairs_with_labels(input_tensor)
+print(pairs_tensor)
+print(labels)

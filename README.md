@@ -17,16 +17,16 @@ This functionality includes
 
 # Results
 
-My most successful approach has been using curiosity-based learning with [EA's technique](http://arxiv.org/pdf/2103.13798), where the AI is rewarded for reaching areas that have not been visited yet. 
+My most successful approach has been using curiosity-based learning with [EA's technique](http://arxiv.org/pdf/2103.13798), where the AI is rewarded for reaching areas that have not been visited yet.
 
-Below is a video of it running
+Below is a video of it running (click on it)  
 [![Alt text](https://img.youtube.com/vi/UNaf_jnOZrA/0.jpg)](https://www.youtube.com/watch?v=UNaf_jnOZrA)
 
 
 Comparing the coverage of the random player to the AI's displays its successful learning.
 |Original map for reference|Randomly moving players|Curiosity-based AI learning|
 |--|--|--|
-|![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/map_BOB.png?raw=true =400x)|![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/coverage_random_agent.png?raw=true)| ![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/coverage_curiosityAI_agent.png?raw=true) |
+|![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/map_BOB.png?raw=true)|![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/readme_imgs/coverage_random_agent.png?raw=true)| ![enter image description here](https://github.com/Gumbo64/sm64-AI/blob/coop/readme_imgs/coverage_curiosityAI_agent.png?raw=true) |
 
 # Setup 
 1. Put a sm64 US rom in the env folder and rename it baserom.us.z64
@@ -53,8 +53,7 @@ pip install -r requirements.txt
 
 ```
 
-3. Run sm64_test_tag_model.py to test a pre-trained AI or sm64_env_random_action_text.py to test the environment
+3. (optionally) download [the pre-trained model](https://huggingface.co/Gumbo64/sm64-curiosity-img/blob/main/agentCuriosityLSTM_BOB.pt) into /trained_models and run sm64_test_curiosity_model.py to test it
 
-  
 
-to change the map, go to env/mods/compass/main.lua and change gLevelValues.entryLevel to whatever level
+To change the map, go to env/mods/compass/main.lua and change gLevelValues.entryLevel to whatever level

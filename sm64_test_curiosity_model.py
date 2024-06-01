@@ -1,3 +1,4 @@
+
 # from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from env.sm64_env_curiosity import SM64_ENV_CURIOSITY
 from tqdm import tqdm
@@ -8,6 +9,7 @@ from torch.distributions.categorical import Categorical
 import numpy as np
 from env.sm64_env_render_grid import SM64_ENV_RENDER_GRID
 # import multiprocessing
+import math
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -18,7 +20,7 @@ class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
         self.network = nn.Sequential(
-            # 4 frame stack so that is the first number
+            # 1 frame stack so that is the first number
             layer_init(nn.Conv2d(1, 256, 8, stride=2)),
             nn.MaxPool2d(kernel_size=4, stride=2),
             nn.LeakyReLU(),
@@ -133,8 +135,8 @@ if __name__ == "__main__":
     INIT_HP = {
         "MAX_EPISODES": 1,
         "MAX_EPISODE_LENGTH": 3000,
-        "N_RENDER_COLUMNS": 5,
-        "IMAGE_SCALE_FACTOR": 1,
+        "N_RENDER_COLUMNS": 4,
+        "IMAGE_SCALE_FACTOR": 4,
     }
         
     env = SM64_ENV_CURIOSITY(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK,
@@ -172,7 +174,7 @@ if __name__ == "__main__":
         torch.zeros(agent.lstm.num_layers, envs.num_envs, agent.lstm.hidden_size).to(device),
     )  
     
-    renderer = SM64_ENV_RENDER_GRID(128 * INIT_HP["IMAGE_SCALE_FACTOR"], 72 * INIT_HP["IMAGE_SCALE_FACTOR"], N_RENDER_COLUMNS=INIT_HP["N_RENDER_COLUMNS"], N_RENDER_ROWS=envs.num_envs / INIT_HP["N_RENDER_COLUMNS"], coloured=True, mode="normal")
+    renderer = SM64_ENV_RENDER_GRID(128 * INIT_HP["IMAGE_SCALE_FACTOR"], 72 * INIT_HP["IMAGE_SCALE_FACTOR"], N_RENDER_COLUMNS=INIT_HP["N_RENDER_COLUMNS"], N_RENDER_ROWS= math.ceil(envs.num_envs / INIT_HP["N_RENDER_COLUMNS"]), coloured=True, mode="normal")
     for idx_epi in tqdm(range(INIT_HP["MAX_EPISODES"])):
         initial_lstm_state = (next_lstm_state[0].clone(), next_lstm_state[1].clone())
 

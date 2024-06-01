@@ -67,7 +67,7 @@ class SM64_ENV_TAG(SM64_ENV):
             partner_pos = infos[key]["partner_pos"]
             partner_vel = infos[key]["partner_vel"]
             relative_pos = [pos[0] - partner_pos[0], pos[1] - partner_pos[1], pos[2] - partner_pos[2]]
-            pos_scaler = 16000
+            pos_scaler = 8000
             vel_scaler = 50
 
             positional_input = np.array([pos[0] / pos_scaler,
@@ -170,3 +170,4 @@ class SM64_ENV_TAG(SM64_ENV):
             # self.prev_angle_differences[hiderIndex] = hiderAngleDifference
             # self.prev_angle_differences[seekerIndex] = seekerAngleDifference
         # print(self.rewards)
+    

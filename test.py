@@ -1,36 +1,25 @@
+from collections import deque
 import numpy as np
-import torch
+import math
+a = np.array([[1, 2, 3], [4, 5,6]])
+b = np.array([[6, 7, 8],[ 9, 10,11]])
+c = np.concatenate([a, b], axis=0)
+d = np.concatenate([a, b], axis=1)
+print(c)
+print(d)
+rotation_angle = - math.atan2(1, 1)
+rotation_matrix = np.array([[np.cos(rotation_angle),-np.sin(rotation_angle), 0],
+                            [np.sin(rotation_angle), np.cos(rotation_angle), 0],
+                            [0                     , 0                     , 1]])
+print(np.dot(c, rotation_matrix))
 
-def precompute_indices_and_labels(n, k=3):
-    # Generate the meshgrid of indices
-    ix = np.arange(n)
-    idx1, idx2 = np.meshgrid(ix, ix, indexing='ij')
-    
-    # Select only the upper triangle of indices without the diagonal
-    mask = idx2 > idx1
-    idx1 = idx1[mask]
-    idx2 = idx2[mask]
-    
-    # Generate the labels. If it is within k steps, label it as 1
-    labels = idx2 - idx1 <= k
-    labels = labels.astype(int)
-    
-    return idx1, idx2, labels
+n = np.array([54,3,99,4,0])
+print(np.argsort(n))
+print(n[np.argsort(n)[0:2]])
 
-def generate_pairs_with_labels(tensor):
-    # Gather the pairs using the filtered indices
-    pairs = tensor[idx1], tensor[idx2]
-    
-    # Convert the results back to PyTorch tensors
-    pairs_tensor = torch.stack(pairs, dim=1)    
-    return pairs_tensor
+print(math.atan2(0,0))
 
-# Example usage:
-input_tensor = torch.tensor([5, 3, 12, 7, 43, 51, 6453, 1235, 123541])
-n = input_tensor.size(0)
-print(input_tensor.dim())
-idx1, idx2, labels = precompute_indices_and_labels(n)
 
-pairs_tensor = generate_pairs_with_labels(input_tensor)
-print(pairs_tensor)
-print(labels)
+numerical_input = np.zeros(0)
+numerical_input = np.concatenate([numerical_input, np.array([1,2,3])])
+print(numerical_input)

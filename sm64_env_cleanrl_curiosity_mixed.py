@@ -15,7 +15,7 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-from env.sm64_env_tag import SM64_ENV_TAG
+from env.sm64_env_curiosity_mixedinput import SM64_ENV_CURIOSITY_MIXED
 from env.sm64_env_render_grid import SM64_ENV_RENDER_GRID
 from tqdm import tqdm
 import multiprocessing
@@ -49,7 +49,7 @@ def parse_args():
         help="the learning rate of the optimizer")
     parser.add_argument("--num-envs", type=int, default=1,
         help="the number of parallel game environments")
-    parser.add_argument("--num-steps", type=int, default=200,
+    parser.add_argument("--num-steps", type=int, default=500,
         help="the number of steps to run in each environment per policy rollout")
     parser.add_argument("--anneal-lr", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggle learning rate annealing for policy and value networks")
@@ -77,8 +77,8 @@ def parse_args():
         help="the target KL divergence threshold")
     args = parser.parse_args()
 
-    # # we split batches across 2 players, so must divide this by 2
-    # args.batch_size = int(args.num_envs * args.num_steps) // 2
+
+    # args.batch_size = int(args.num_envs * args.num_steps)
     # args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # # fmt: on
     return args
@@ -99,25 +99,19 @@ class Agent(nn.Module):
             nn.LeakyReLU(),
             layer_init(nn.Conv2d(256, 128, 4, stride=2)),
             nn.LeakyReLU(),
-            layer_init(nn.Conv2d(128, 128, 2, stride=1)),
+            layer_init(nn.Conv2d(128, 64, 2, stride=1)),
+            nn.LeakyReLU(),
+            layer_init(nn.Conv2d(64, 32, 2, stride=1)),
+            nn.LeakyReLU(),
+            layer_init(nn.Conv2d(32, 16, 2, stride=1)),
             nn.LeakyReLU(),
             nn.Flatten(),
         )
 
-        # do these layers just obfuscate the data? maybe just input them directly to the combined features
-        # self.numerical_features = nn.Sequential(
-        #     layer_init(nn.Linear(12, 512), std=0.01),
-        #     nn.LeakyReLU(),
-        #     layer_init(nn.Linear(512, 512), std=0.01),
-        #     nn.LeakyReLU(),
-        #     layer_init(nn.Linear(512, 512), std=0.01),
-        #     nn.LeakyReLU(),
-        # )
-
         self.combined_features_1 = nn.Sequential(
-            # 7680 calculated from torch_layer_size_test.py, given 4 channels and 128x72 input
-            # layer_init(nn.Linear(7680 + 512, 4096)),
-            layer_init(nn.Linear(7680 + 12, 4096)),
+            # 480 calculated from torch_layer_size_test.py, given 1 channel and 128x72 input.
+            # 227 numerical inputs
+            layer_init(nn.Linear(480 + 227, 4096)),
             nn.LeakyReLU(),
         )
         self.combined_features_2 = nn.Sequential(
@@ -192,32 +186,28 @@ class Agent(nn.Module):
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(combined_4)
 
-def combine_hider_seeker_actions(hiderActions, seekerActions):
-    t = torch.zeros(2 * hiderActions.shape[0], dtype=hiderActions.dtype)
-    t[0::2] = hiderActions
-    t[1::2] = seekerActions
-    return t
 
-def split_hider_seeker_tensor(tensor):
-    # perform the inverse of the above function
-    a = tensor[::2]
-    b = tensor[1::2]
-    return a,b
+
+########################## BLACK AND WHITE FILTER
 
 GRAYSCALE_WEIGHTS = np.array([0.299, 0.587, 0.114], dtype=np.float32)
 def preprocess_img(obs, space):
     # observation is (image, numerical)
     # grayscale
-    new_obs = (np.expand_dims((obs[0] @ GRAYSCALE_WEIGHTS),axis=-1), obs[1])
+    new_obs = (np.expand_dims((obs[0] @ GRAYSCALE_WEIGHTS), axis=-1).astype(np.uint8), obs[1])
     # print(new_obs[0].shape, new_obs[1].shape)
+
     return new_obs
 
 def preprocess_space(space):
-    # observation is (image, numerical)
-    img_shape = space.shape
-    new_img_shape = (img_shape[0], img_shape[1], 1)
-    space = gymnasium.spaces.Tuple([gymnasium.spaces.Box(low=0, high=255, shape=new_img_shape, dtype=np.float32), gymnasium.spaces.Box(low=-1, high=1, shape=(12,), dtype=np.float32)])
+    # observation is (image, numerical) 
+    img_shape = space[0].shape
+    new_img_shape = (img_shape[0],img_shape[1], 1)
+
+    space = gymnasium.spaces.Tuple([gymnasium.spaces.Box(low=0, high=255, shape=new_img_shape, dtype=np.uint8), 
+                                    space[1]])
     return space
+##############################################
 
 if __name__ == "__main__":
     # extra moves added for the more complicated model 
@@ -259,26 +249,33 @@ if __name__ == "__main__":
         # ["noStick",False,False,True],
     ]
 
-    env = SM64_ENV_TAG(FRAME_SKIP=4, ACTION_BOOK=ACTION_BOOK, PLAYER_COLLISION_TYPE=1)
+    env = SM64_ENV_CURIOSITY_MIXED(
+        FRAME_SKIP=4,
+        MAKE_OTHER_PLAYERS_INVISIBLE=False, 
+        ACTION_BOOK=ACTION_BOOK,
+        IMG_WIDTH=128,
+        IMG_HEIGHT=72,
+    )
+
 
     envs = ss.observation_lambda_v0(env, preprocess_img, preprocess_space)
     envs = ss.pettingzoo_env_to_vec_env_v1(envs)
     envs.black_death = True
 
-    num_dll = multiprocessing.cpu_count()
-    # num_dll = 1
+    # num_dll = multiprocessing.cpu_count()
+    num_dll = 1
+    # num_dll = 2
 
     envs = ss.concat_vec_envs_v1(envs, num_dll, num_cpus=num_dll, base_class="gymnasium")
     envs.black_death = True
-    
+
     envs.single_observation_space = envs.observation_space
     envs.single_action_space = envs.action_space
     envs.is_vector_env = True
 
     args = parse_args()
     args.num_envs = envs.num_envs
-    # half because it is spread across 2 players
-    args.batch_size = (args.num_envs * args.num_steps) // 2
+    args.batch_size = (args.num_envs * args.num_steps) 
     args.minibatch_size = args.batch_size // args.num_minibatches
 
 
@@ -315,14 +312,14 @@ if __name__ == "__main__":
 
     assert isinstance(envs.single_action_space, gymnasium.spaces.Discrete), "only discrete action space is supported"
 
-    agentHider = Agent(envs).to(device)
-    optimizerHider = optim.Adam(agentHider.parameters(), lr=args.learning_rate, eps=1e-5)
+    agent = Agent(envs).to(device)
+    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     agentSeeker = Agent(envs).to(device)
     optimizerSeeker = optim.Adam(agentSeeker.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # if you want to load an agent
-    # agentHider.load_state_dict(torch.load(f"trained_models/agentHider_13.1h.pt", map_location=device))
+    # agent.load_state_dict(torch.load(f"trained_models/agent13.1h.pt", map_location=device))
     # agentSeeker.load_state_dict(torch.load(f"trained_models/agentSeeker_13.1h.pt", map_location=device))
     
     
@@ -331,76 +328,64 @@ if __name__ == "__main__":
     img_shape = envs.single_observation_space.spaces[0].shape
     numerical_shape = envs.single_observation_space.spaces[1].shape
 
-    obsImgHider = torch.zeros((args.num_steps, args.num_envs // 2) + img_shape).to(device)
-    obsNumericalHider = torch.zeros((args.num_steps, args.num_envs // 2) + numerical_shape).to(device)
+    obsImg = torch.zeros((args.num_steps, args.num_envs ) + img_shape).to(device)
+    obsNumerical = torch.zeros((args.num_steps, args.num_envs ) + numerical_shape).to(device)
 
-    # imgsHider = 
 
-    actionsHider = torch.zeros((args.num_steps, args.num_envs // 2) + envs.single_action_space.shape).to(device)
-    logprobsHider = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    rewardsHider = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    donesHider = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    valuesHider = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
+    actions = torch.zeros((args.num_steps, args.num_envs ) + envs.single_action_space.shape).to(device)
+    logprobs = torch.zeros((args.num_steps, args.num_envs )).to(device)
+    rewards = torch.zeros((args.num_steps, args.num_envs )).to(device)
+    dones = torch.zeros((args.num_steps, args.num_envs )).to(device)
+    values = torch.zeros((args.num_steps, args.num_envs )).to(device)
 
-    obsImgSeeker = torch.zeros((args.num_steps, args.num_envs // 2) + img_shape).to(device)
-    obsNumericalSeeker = torch.zeros((args.num_steps, args.num_envs // 2) + numerical_shape).to(device)
-
-    actionsSeeker = torch.zeros((args.num_steps, args.num_envs // 2) + envs.single_action_space.shape).to(device)
-    logprobsSeeker = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    rewardsSeeker = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    donesSeeker = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
-    valuesSeeker = torch.zeros((args.num_steps, args.num_envs // 2)).to(device)
 
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
-    # o, infoss = envs.reset()
-    # next_obs = torch.Tensor(o).to(device)
-    # next_done = torch.zeros(args.num_envs).to(device)
     num_updates = args.total_timesteps // args.batch_size
     cols = 4
     renderer = SM64_ENV_RENDER_GRID(128, 72, N_RENDER_COLUMNS=cols, N_RENDER_ROWS=(envs.num_envs // cols) + 1, mode="normal")
+
+    obs, _ = envs.reset()
+
+    next_obs_img = torch.Tensor(obs[0]).to(device)
+    next_obs_numerical = torch.Tensor(obs[1]).to(device)
+
+
     for update in tqdm(range(1, num_updates + 1)):
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (update - 1.0) / num_updates
             lrnow = frac * args.learning_rate
-            optimizerHider.param_groups[0]["lr"] = lrnow
+            optimizer.param_groups[0]["lr"] = lrnow
             optimizerSeeker.param_groups[0]["lr"] = lrnow
-        obs, _ = envs.reset()
-        next_obs_img = torch.Tensor(obs[0]).to(device)
-        next_obs_numerical = torch.Tensor(obs[1]).to(device)
+
+        if update % 5 == 0:
+            obs, _ = envs.reset()
+            next_obs_img = torch.Tensor(obs[0]).to(device)
+            next_obs_numerical = torch.Tensor(obs[1]).to(device)
 
         next_done = torch.zeros(args.num_envs).to(device)
         for step in tqdm(range(0, args.num_steps), leave=False):
             global_step += 1 * args.num_envs
             # ALGO LOGIC: action logic
             with torch.no_grad():
-                hider_obs_img, seeker_obs_img = split_hider_seeker_tensor(next_obs_img)
-                hider_obs_numerical, seeker_obs_numerical = split_hider_seeker_tensor(next_obs_numerical)
+                action, logprob, _, value = agent.get_action_and_value(next_obs_img, next_obs_numerical)
+                values[step] = value.flatten()
 
-                hider_done, seeker_done = split_hider_seeker_tensor(next_done)
-                hider_results = agentHider.get_action_and_value(hider_obs_img, hider_obs_numerical)
-                seeker_results = agentSeeker.get_action_and_value(seeker_obs_img, seeker_obs_numerical)
-                actionHider, logprobHider, _Hider, valueHider = hider_results
-                actionSeeker, logprobSeeker, _Seeker, valueSeeker = seeker_results
+            obsImg[step], obsNumerical[step] = next_obs_img, next_obs_numerical
 
-            obsImgHider[step], obsNumericalHider[step] = hider_obs_img, hider_obs_numerical
-            obsImgSeeker[step], obsNumericalSeeker[step] = seeker_obs_img, seeker_obs_numerical
-
-            donesHider[step], donesSeeker[step] = hider_done, seeker_done
-
-            valuesHider[step], valuesSeeker[step] = valueHider.flatten(), valueSeeker.flatten()
-            actionsHider[step], actionsSeeker[step] = actionHider, actionSeeker
-            logprobsHider[step], logprobsSeeker[step] = logprobHider, logprobSeeker
+            dones[step] = next_done
+            
+            actions[step]= action
+            logprobs[step]= logprob
             # TRY NOT TO MODIFY: execute the game and log data.
 
-            input_actions = combine_hider_seeker_actions(actionHider, actionSeeker)
-            next_obs, reward, done, truncations, infos = envs.step(input_actions.cpu().numpy())
-            total_reward = torch.tensor(reward).to(device).view(-1)
+            next_obs, reward, done, truncations, infos = envs.step(action.cpu().numpy())
+            reward = torch.tensor(reward).to(device).view(-1)
             # print(total_reward)
             # time.sleep(0.1)
-            rewardsHider[step], rewardsSeeker[step] = split_hider_seeker_tensor(total_reward)
+            rewards[step] = reward
 
             # need to input the numpy form of the observation to the renderer, not tensor
             renderer.render_game(next_obs)
@@ -418,53 +403,32 @@ if __name__ == "__main__":
             #         writer.add_scalar(f"charts/episodic_length-player{player_idx}", item["episode"]["l"], global_step)
 
         # bootstrap value if not done
-        hider_obs_img, seeker_obs_img = split_hider_seeker_tensor(next_obs_img)
-        hider_obs_numerical, seeker_obs_numerical = split_hider_seeker_tensor(next_obs_numerical)
         with torch.no_grad():
-            ############### HIDER BOOTSTRAPPING ###############
-            hider_values = agentHider.get_value(hider_obs_img, hider_obs_numerical)
-            next_value = hider_values.reshape(1, -1)
-            advantagesHider = torch.zeros_like(rewardsHider).to(device)
+            next_value = agent.get_value(next_obs_img, next_obs_numerical).reshape(1, -1)
+            advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             for t in reversed(range(args.num_steps)):
                 if t == args.num_steps - 1:
-                    nextnonterminal = 1.0 - hider_done
+                    nextnonterminal = 1.0 - next_done
                     nextvalues = next_value
                 else:
-                    nextnonterminal = 1.0 - donesHider[t + 1]
-                    nextvalues = valuesHider[t + 1]
-                delta = rewardsHider[t] + args.gamma * nextvalues * nextnonterminal - valuesHider[t]
-                advantagesHider[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
-            returnsHider = advantagesHider + valuesHider
+                    nextnonterminal = 1.0 - dones[t + 1]
+                    nextvalues = values[t + 1]
+                delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
+                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+            returns = advantages + values
 
-            ############### SEEKER BOOTSTRAPPING ###############
-            seeker_values = agentSeeker.get_value(seeker_obs_img, seeker_obs_numerical)
-            next_value = seeker_values.reshape(1, -1)
-            advantagesSeeker = torch.zeros_like(rewardsSeeker).to(device)
-            lastgaelam = 0
-            for t in reversed(range(args.num_steps)):
-                if t == args.num_steps - 1:
-                    nextnonterminal = 1.0 - seeker_done
-                    nextvalues = next_value
-                else:
-                    nextnonterminal = 1.0 - donesSeeker[t + 1]
-                    nextvalues = valuesSeeker[t + 1]
-                delta = rewardsSeeker[t] + args.gamma * nextvalues * nextnonterminal - valuesSeeker[t]
-                advantagesSeeker[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
-            returnsSeeker = advantagesSeeker + valuesSeeker
-
-
-        ################### HIDER LEARNING ###################
+        ###################  LEARNING ###################
 
         # flatten the batch
-        b_img_obs = obsImgHider.reshape((-1,) + img_shape)
-        b_numerical_obs = obsNumericalHider.reshape((-1,) + numerical_shape)
+        b_img_obs = obsImg.reshape((-1,) + img_shape)
+        b_numerical_obs = obsNumerical.reshape((-1,) + numerical_shape)
 
-        b_logprobs = logprobsHider.reshape(-1)
-        b_actions = actionsHider.reshape((-1,) + envs.single_action_space.shape)
-        b_advantages = advantagesHider.reshape(-1)
-        b_returns = returnsHider.reshape(-1)
-        b_values = valuesHider.reshape(-1)
+        b_logprobs = logprobs.reshape(-1)
+        b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
+        b_advantages = advantages.reshape(-1)
+        b_returns = returns.reshape(-1)
+        b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
         b_inds = np.arange(args.batch_size)
@@ -475,7 +439,7 @@ if __name__ == "__main__":
                 end = start + args.minibatch_size
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = agentHider.get_action_and_value(b_img_obs[mb_inds], b_numerical_obs[mb_inds], b_actions.long()[mb_inds])
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_img_obs[mb_inds], b_numerical_obs[mb_inds], b_actions.long()[mb_inds])
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
@@ -512,10 +476,10 @@ if __name__ == "__main__":
                 entropy_loss = entropy.mean()
                 loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
 
-                optimizerHider.zero_grad()
+                optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_(agentHider.parameters(), args.max_grad_norm)
-                optimizerHider.step()
+                nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+                optimizer.step()
 
             if args.target_kl is not None:
                 if approx_kl > args.target_kl:
@@ -525,111 +489,28 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizerHider.param_groups[0]["lr"], global_step)
-        writer.add_scalar("lossesHider/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("lossesHider/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("lossesHider/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("lossesHider/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("lossesHider/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("lossesHider/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("lossesHider/explained_variance", explained_var, global_step)
-
-        ################### SEEKER LEARNING (should be the same code) ###################
-                 
-        # flatten the batch
-        b_img_obs = obsImgSeeker.reshape((-1,) + img_shape)
-        b_numerical_obs = obsNumericalSeeker.reshape((-1,) + numerical_shape)
-
-        b_logprobs = logprobsSeeker.reshape(-1)
-        b_actions = actionsSeeker.reshape((-1,) + envs.single_action_space.shape)
-        b_advantages = advantagesSeeker.reshape(-1)
-        b_returns = returnsSeeker.reshape(-1)
-        b_values = valuesSeeker.reshape(-1)
-
-        # Optimizing the policy and value network
-        b_inds = np.arange(args.batch_size)
-        clipfracs = []
-        for epoch in range(args.update_epochs):
-            np.random.shuffle(b_inds)
-            for start in range(0, args.batch_size, args.minibatch_size):
-                end = start + args.minibatch_size
-                mb_inds = b_inds[start:end]
-
-                _, newlogprob, entropy, newvalue = agentSeeker.get_action_and_value(b_img_obs[mb_inds], b_numerical_obs[mb_inds], b_actions.long()[mb_inds])
-                logratio = newlogprob - b_logprobs[mb_inds]
-                ratio = logratio.exp()
-
-                with torch.no_grad():
-                    # calculate approx_kl http://joschu.net/blog/kl-approx.html
-                    old_approx_kl = (-logratio).mean()
-                    approx_kl = ((ratio - 1) - logratio).mean()
-                    clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
-
-                mb_advantages = b_advantages[mb_inds]
-                if args.norm_adv:
-                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
-
-                # Policy loss
-                pg_loss1 = -mb_advantages * ratio
-                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
-                pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-
-                # Value loss
-                newvalue = newvalue.view(-1)
-                if args.clip_vloss:
-                    v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
-                    v_clipped = b_values[mb_inds] + torch.clamp(
-                        newvalue - b_values[mb_inds],
-                        -args.clip_coef,
-                        args.clip_coef,
-                    )
-                    v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
-                    v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-                    v_loss = 0.5 * v_loss_max.mean()
-                else:
-                    v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
-
-                entropy_loss = entropy.mean()
-                loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
-
-                optimizerSeeker.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_norm_(agentSeeker.parameters(), args.max_grad_norm)
-                optimizerSeeker.step()
-
-            if args.target_kl is not None:
-                if approx_kl > args.target_kl:
-                    break
-
-        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
-        var_y = np.var(y_true)
-        explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-
-        # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizerHider.param_groups[0]["lr"], global_step)
-        writer.add_scalar("lossesSeeker/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("lossesSeeker/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("lossesSeeker/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("lossesSeeker/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("lossesSeeker/explained_variance", explained_var, global_step)
+        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
+        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
+        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
+        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
+        writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
+        writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
+        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
+        writer.add_scalar("losses/explained_variance", explained_var, global_step)
 
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         # average over time and envs
-        writer.add_scalar("charts/avg_hider_reward", torch.mean(torch.mean(rewardsHider)), global_step)
-        writer.add_scalar("charts/avg_seeker_reward", torch.mean(torch.mean(rewardsSeeker)), global_step)
-
+        writer.add_scalar("charts/avg_reward", torch.mean(torch.mean(rewards)), global_step)
+        writer.add_scalar("charts/n_nodes", infos[0]["node_index"], global_step)
         if args.track:
             # make sure to tune `CHECKPOINT_FREQUENCY` 
             # so models are not saved too frequently
-            if update % 360 == 0:
+            if update % 60 == 0:
                 t = time.time() - start_time
                 t_hours = round(t / 3600, 1)
-                torch.save(agentHider.state_dict(), f"{wandb.run.dir}/agentHider_{t_hours}h.pt")
-                torch.save(agentSeeker.state_dict(), f"{wandb.run.dir}/agentSeeker_{t_hours}h.pt")
-                wandb.save(f"{wandb.run.dir}/agentHider.pt", policy="now",  base_path=wandb.run.dir)
-                wandb.save(f"{wandb.run.dir}/agentSeeker.pt", policy="now",  base_path=wandb.run.dir)
+                torch.save(agent.state_dict(), f"{wandb.run.dir}/agent_{t_hours}h.pt")
+                wandb.save(f"{wandb.run.dir}/agent_{t_hours}h.pt", policy="now",  base_path=wandb.run.dir)
+
 
     envs.close()
     writer.close()

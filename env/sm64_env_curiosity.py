@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 class SM64_ENV_CURIOSITY(SM64_ENV):
     def __init__(self, NODES_MAX=3000, NODE_RADIUS= 300, 
-                 NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=800, **kwargs):
+                 NODES_MAX_VISITS=80, NODE_MAX_HEIGHT_ABOVE_GROUND=800, **kwargs):
         # format of each node is (x,y,z,visits)
         # no need to eat up vram with these nodes, not much faster anyway
         self.nodes = torch.zeros((NODES_MAX, 4), device="cpu")
@@ -24,10 +24,11 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
         self.NODE_RADIUS = NODE_RADIUS
         self.NODES_MAX_VISITS = NODES_MAX_VISITS
         self.NODE_MAX_HEIGHT_ABOVE_GROUND = NODE_MAX_HEIGHT_ABOVE_GROUND
+        self.NODES_MAX = NODES_MAX
         self.node_index = 1
 
-        super(SM64_ENV_CURIOSITY,self).__init__(NODES_MAX=3000, NODE_RADIUS= 300, 
-                NODES_MAX_VISITS=40, NODE_MAX_HEIGHT_ABOVE_GROUND=800, **kwargs)
+        super(SM64_ENV_CURIOSITY,self).__init__(NODES_MAX=NODES_MAX, NODE_RADIUS=NODE_RADIUS, 
+                NODES_MAX_VISITS=NODES_MAX_VISITS, NODE_MAX_HEIGHT_ABOVE_GROUND=NODE_MAX_HEIGHT_ABOVE_GROUND, **kwargs)
 
     def calc_agent_rewards(self, gameStatePointers):
         # remember the number of visits to each node, then update them all afterwards
@@ -67,7 +68,7 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
     def make_infos(self, gameStatePointers):
         super().make_infos(gameStatePointers)
         for i in range(self.MAX_PLAYERS):
-            self.infos[i]["node_index"]= self.node_index
+            self.infos[i]["node_index"] = self.node_index
 
     def reset(self, seed=None, options=None):
         ##################### GRAPHING
@@ -104,11 +105,11 @@ class SM64_ENV_CURIOSITY(SM64_ENV):
         # plt.close(fig)
 
         ################################ ACTUAL RESETTING
+        self.nodes = torch.zeros((self.NODES_MAX, 4), device="cpu")
+        self.nodes[0][3] = 1 # set the first node to have 1 visit
         self.node_index = 1
         return super().reset(seed, options)
     
-    def reset_nodes(self):
-        self.node_index = 1
     
 
 

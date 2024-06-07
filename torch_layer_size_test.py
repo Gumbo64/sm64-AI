@@ -31,30 +31,3 @@ channels = 1
 
 print(conv_net(torch.zeros((1, channels, height, width))).shape)
 
-
-CURIOSITY = True
-N_PREVIOUS_POSITIONS = 20
-N_CLOSEST_PLAYERS = 5
-N_CLOSEST_NODES = 10
-
-num_numerical_features = 0
-
-# previous positions
-num_numerical_features += 3 * N_PREVIOUS_POSITIONS * 3
-# current velocity and pos
-num_numerical_features += 3 * 2
-
-if CURIOSITY:
-    # Other players positions:
-    num_numerical_features += 3 * N_CLOSEST_PLAYERS * 3
-
-    # Other players velocities:
-    num_numerical_features += 2 * N_CLOSEST_PLAYERS * 3
-
-    # surrounding nodes
-    num_numerical_features += N_CLOSEST_NODES * (3 * 3 + 1)
-
-    
-
-
-print(num_numerical_features)

@@ -1,25 +1,17 @@
-from collections import deque
 import numpy as np
-import math
-a = np.array([[1, 2, 3], [4, 5,6]])
-b = np.array([[6, 7, 8],[ 9, 10,11]])
-c = np.concatenate([a, b], axis=0)
-d = np.concatenate([a, b], axis=1)
-print(c)
-print(d)
-rotation_angle = - math.atan2(1, 1)
-rotation_matrix = np.array([[np.cos(rotation_angle),-np.sin(rotation_angle), 0],
-                            [np.sin(rotation_angle), np.cos(rotation_angle), 0],
-                            [0                     , 0                     , 1]])
-print(np.dot(c, rotation_matrix))
 
-n = np.array([54,3,99,4,0])
-print(np.argsort(n))
-print(n[np.argsort(n)[0:2]])
+# Example Nx3 and Mx3 arrays
+N_array = np.array([[1, 1, 1], [4, 5, 6], [7, 8, 9]])  # Nx3 array
+M_array = np.array([[10, 11, 12], [13, 14, 15]])       # Mx3 array
 
-print(math.atan2(0,0))
+# Reshape N_array to be Nx1x3 and M_array to be 1xMx3
+N_array_reshaped = N_array[:, np.newaxis, :]
+M_array_reshaped = M_array[np.newaxis, :, :]
 
+# Add the reshaped arrays, resulting in an NxMx3 array
+result = N_array_reshaped + M_array_reshaped
 
-numerical_input = np.zeros(0)
-numerical_input = np.concatenate([numerical_input, np.array([1,2,3])])
-print(numerical_input)
+# Reshape the result to be (N*M)x3
+result = result.reshape(-1, 3)
+
+print(result)
